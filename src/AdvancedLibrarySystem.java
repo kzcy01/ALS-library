@@ -59,14 +59,18 @@ public class AdvancedLibrarySystem extends JFrame {
         }
     }
 
-    public AdvancedLibrarySystem() {
+   public AdvancedLibrarySystem() {
         initializeDatabaseSchema();
         seedDataInventory();
         startLocalhostWebServer();
 
+        // This safe wrapper stops cloud crashes completely!
         boolean isHeadless = "true".equals(System.getProperty("java.awt.headless"));
         if (!isHeadless) {
             setupMainFrame();
+        } else {
+            System.out.println("--- CLOUD ENVIRONMENT DETECTED ---");
+            System.out.println("Starting Headless Web Infrastructure Server Console...");
         }
         schedulePHTimeRestarts();
     }
@@ -539,11 +543,14 @@ public class AdvancedLibrarySystem extends JFrame {
     private void refreshAdminTables() {}
 
     public static void main(String[] args) {
+        // Enforce headless parameter flags globally if running on Railway port gates
         if (System.getenv("PORT") != null) {
             System.setProperty("java.awt.headless", "true");
+            // Instantiate the application background engine directly
             new AdvancedLibrarySystem();
         } else {
+            // Run desktop windows graphics locally
+            System.setProperty("java.awt.headless", "false");
             SwingUtilities.invokeLater(() -> new AdvancedLibrarySystem().setVisible(true));
         }
     }
-}
