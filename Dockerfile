@@ -1,8 +1,14 @@
-FROM container-registry.oracle.com/java/openjdk:26-oraclelinux9
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 
-# Copy all project files into the container workspace
+# Copy the raw Java source files into the container
 COPY . .
 
-# Run the pre-compiled class directly using the dual-path script
-CMD ["sh", "-c", "if [ -d \"out/production/untitled\" ]; then java -cp out/production/untitled:out AdvancedLibrarySystem; else java -cp src AdvancedLibrarySystem; fi"]
+# Move directly into the src directory where the file lives
+WORKDIR /app/src
+
+# Compile directly on the cloud server using absolute minimum memory tricks
+RUN javac -J-Xms64m -J-Xmx128m -encoding UTF-8 AdvancedLibrarySystem.java
+
+# Boot the application directly from the freshly compiled local directory
+CMD ["java", "-Xms64m", "-Xmx192m", "AdvancedLibrarySystem"]
