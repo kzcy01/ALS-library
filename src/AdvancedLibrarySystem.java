@@ -13,6 +13,7 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
+import java.util.regex.Pattern;
 
 public class AdvancedLibrarySystem {
     private JFrame mainFrame;
@@ -23,8 +24,11 @@ public class AdvancedLibrarySystem {
     private static final List<String> operationsLog = Collections.synchronizedList(new ArrayList<>());
     private static final Map<String, String> tokenToUserMap = Collections.synchronizedMap(new HashMap<>());
 
+    // REGEX VALIDATION CONSTRAINT: Enforces strict XXXX-XXXXXX numerical requirement
+    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^\\d{4}-\\d{6}$");
+
     public AdvancedLibrarySystem() {
-        logSystemEvent("Initializing Feature-Rich Library Core Management Suite...");
+        logSystemEvent("Initializing Advanced Library Suite with Realtime Audit Logs...");
 
         try {
             ensureDatabaseConnected();
@@ -70,7 +74,6 @@ public class AdvancedLibrarySystem {
         try {
             Connection conn = ensureDatabaseConnected();
             try (Statement st = conn.createStatement()) {
-                // Ensure Books table layout is stable
                 st.execute("CREATE TABLE IF NOT EXISTS books (" +
                         "id INT PRIMARY KEY, " +
                         "title VARCHAR(255) NOT NULL, " +
@@ -78,21 +81,45 @@ public class AdvancedLibrarySystem {
                         "borrower VARCHAR(100) DEFAULT NULL, " +
                         "due_date VARCHAR(50) DEFAULT NULL);");
 
-                // Ensure Users baseline exists
                 st.execute("CREATE TABLE IF NOT EXISTS users (" +
                         "username VARCHAR(100) PRIMARY KEY, " +
                         "role VARCHAR(50) DEFAULT 'Standard Student');");
 
-                // NEW FEATURE STRUCTURE: Relational bookmarks tracking configuration
                 st.execute("CREATE TABLE IF NOT EXISTS favorites (" +
                         "username VARCHAR(100), " +
                         "book_id INT, " +
                         "PRIMARY KEY (username, book_id));");
 
-                logSystemEvent("Relational schema layout validated successfully.");
+                // REALTIME TRACKING REQ: Table configuration logging all user activity events
+                st.execute("CREATE TABLE IF NOT EXISTS activity_logs (" +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "username VARCHAR(100), " +
+                        "action_type VARCHAR(100), " +
+                        "details VARCHAR(255), " +
+                        "timestamp VARCHAR(50));");
+
+                logSystemEvent("Dynamic runtime infrastructure schema successfully synced.");
             }
         } catch (Exception e) {
-            System.err.println("Schema Adjustment Fault: " + e.getMessage());
+            System.err.println("Schema Modification Error: " + e.getMessage());
+        }
+    }
+
+    // HELPER: Easily record structural data tracking events directly into MySQL pipeline
+    private void recordUserActivity(String username, String actionType, String details) {
+        try {
+            Connection conn = ensureDatabaseConnected();
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO activity_logs (username, action_type, details, timestamp) VALUES (?, ?, ?, ?)")) {
+                ps.setString(1, username);
+                ps.setString(2, actionType);
+                ps.setString(3, details);
+                ps.setString(4, timestamp);
+                ps.executeUpdate();
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to write to activity logs: " + e.getMessage());
         }
     }
 
@@ -104,55 +131,15 @@ public class AdvancedLibrarySystem {
                 st.execute("INSERT IGNORE INTO users (username, role) VALUES ('2025-200491', 'Standard Student');");
 
                 ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM books;");
-                if (rs.next() && rs.getInt(1) < 10) {
-                    logSystemEvent("Seeding genuine 100 library catalog database index entries...");
-
-                    String[] genuineTitles = {
-                        "The Great Gatsby", "To Kill a Mockingbird", "1984", "Pride and Prejudice", "The Catcher in the Rye",
-                        "The Hobbit", "Fahrenheit 451", "Jane Eyre", "Animal Farm", "The Lord of the Rings",
-                        "Brave New World", "Lord of the Flies", "The Grapes of Wrath", "Macbeth", "Hamlet",
-                        "Frankenstein", "The Odyssey", "A Tale of Two Cities", "Crime and Punishment", "The Old Man and the Sea",
-                        "Great Expectations", "One Hundred Years of Solitude", "Moby-Dick", "The Iliad", "Wuthering Heights",
-                        "The Divine Comedy", "The Brothers Karamazov", "Madame Bovary", "The Adventures of Huckleberry Finn", "Alice in Wonderland",
-                        "The Picture of Dorian Gray", "Dracula", "Les Misérables", "The Count of Monte Cristo", "Don Quixote",
-                        "War and Peace", "Heart of Darkness", "The Stranger", "The Trial", "The Metamorphosis",
-                        "Catch-22", "The Sun Also Rises", "For Whom the Bell Tolls", "A Farewell to Arms", "The Sound and the Fury",
-                        "As I Lay Dying", "The Scarlet Letter", "The Crucible", "Death of a Salesman", "The Giver",
-                        "Of Mice and Men", "Ficciones", "The Aleph", "Invisible Man", "Native Son",
-                        "The Color Purple", "Beloved", "Song of Solomon", "Catching Fire", "The Hunger Games",
-                        "Mockingjay", "Dune", "Neuromancer", "Foundation", "I Robot",
-                        "The Time Machine", "The War of the Worlds", "The Invisible Man", "The Island of Doctor Moreau", "A Game of Thrones",
-                        "A Clash of Kings", "A Storm of Swords", "A Feast for Crows", "A Dance with Dragons", "The Fellowship of the Ring",
-                        "The Two Towers", "The Return of the King", "The Silmarillion", "The Shining", "It",
-                        "The Stand", "Misery", "Carrie", "Salem's Lot", "The Dark Tower",
-                        "Good Omens", "American Gods", "Neverwhere", "The Ocean at the End of the Lane", "Stardust",
-                        "The Road", "No Country for Old Men", "Blood Meridian", "The Border Trilogy", "Suttree",
-                        "The Book Thief", "Life of Pi", "The Kite Runner", "A Thousand Splendid Suns", "And the Mountains Echoed"
-                    };
-
-                    conn.setAutoCommit(false);
-                    try (PreparedStatement ps = conn.prepareStatement("INSERT IGNORE INTO books (id, title, status) VALUES (?, ?, 'Available');")) {
-                        int currentId = 1001;
-                        for (String title : genuineTitles) {
-                            ps.setInt(1, currentId);
-                            ps.setString(2, title);
-                            ps.addBatch();
-                            currentId++;
-                        }
-                        ps.executeBatch();
-                        conn.commit();
-                    } catch (Exception err) {
-                        conn.rollback();
-                        throw err;
-                    } finally {
-                        conn.setAutoCommit(true);
-                    }
-                    logSystemEvent("Dynamic injection complete. 100 books active.");
+                if (rs.next() && rs.getInt(1) < 5) {
+                    st.execute("INSERT IGNORE INTO books (id, title, status) VALUES (1001, 'Introduction to Java Cloud Design', 'Available');");
+                    st.execute("INSERT IGNORE INTO books (id, title, status) VALUES (1002, 'Docker Containers Essentials', 'Available');");
+                    st.execute("INSERT IGNORE INTO books (id, title, status) VALUES (1003, 'Advanced Database Distribution Architectures', 'Available');");
+                    st.execute("INSERT IGNORE INTO books (id, title, status) VALUES (1004, 'The Great Gatsby', 'Available');");
+                    st.execute("INSERT IGNORE INTO books (id, title, status) VALUES (1005, 'To Kill a Mockingbird', 'Available');");
                 }
             }
-        } catch (Exception e) {
-            System.err.println("Seeding error fallback context: " + e.getMessage());
-        }
+        } catch (Exception e) {}
     }
 
     private void setupLocalDesktopFrame() {
@@ -177,7 +164,7 @@ public class AdvancedLibrarySystem {
             webServer.createContext("/", new ApplicationRouterHandler());
             webServer.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(10));
             webServer.start();
-            logSystemEvent("System application engine operating live on port: " + port);
+            logSystemEvent("System application framework operating live on gateway port: " + port);
         } catch (IOException e) {
             System.err.println("Failed to bind platform socket channel: " + e.getMessage());
         }
@@ -226,6 +213,13 @@ public class AdvancedLibrarySystem {
 
                     if ("/login".equals(path) || "/register".equals(path)) {
                         String uid = params.getOrDefault("userId", "").trim();
+
+                        // VALIDATION ROUTINE CHECK: Allow "admin", otherwise filter with exact digit pattern rules
+                        if (!"admin".equalsIgnoreCase(uid) && !STUDENT_ID_PATTERN.matcher(uid).matches()) {
+                            displayValidationError(exchange, "Access Denied: Invalid Formatting standard found. Account IDs must exactly fit numerical pattern format: XXXX-XXXXXX (Ex: 2025-200491)");
+                            return;
+                        }
+
                         if (!uid.isEmpty()) {
                             try (PreparedStatement ps = conn.prepareStatement("SELECT role FROM users WHERE username=?")) {
                                 ps.setString(1, uid);
@@ -234,18 +228,22 @@ public class AdvancedLibrarySystem {
                                     try (PreparedStatement insertPs = conn.prepareStatement("INSERT INTO users (username, role) VALUES (?, 'Standard Student')")) {
                                         insertPs.setString(1, uid);
                                         insertPs.executeUpdate();
-                                        logSystemEvent("Account ID registered successfully: " + uid);
+                                        recordUserActivity(uid, "Registered", "Created clean structural storage token identifier.");
                                     }
                                 }
                                 String token = UUID.randomUUID().toString();
                                 tokenToUserMap.put(token, uid);
                                 exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=" + token + "; Path=/; HttpOnly");
+                                recordUserActivity(uid, "Logged In", "User account online session authorized.");
                             }
                         }
                         redirect(exchange, "/");
                         return;
                     }
                     else if ("/logout".equals(path)) {
+                        if (sessionUser != null) {
+                            recordUserActivity(sessionUser, "Logged Out", "Active web access portal connection severed cleanly.");
+                        }
                         exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
                         redirect(exchange, "/");
                         return;
@@ -263,7 +261,7 @@ public class AdvancedLibrarySystem {
                                 ps.setString(2, dueDate);
                                 ps.setInt(3, Integer.parseInt(assetId));
                                 ps.executeUpdate();
-                                logSystemEvent("User " + sessionUser + " borrowed Book ID: " + assetId);
+                                recordUserActivity(sessionUser, "Borrowed Book", "Assigned Asset ID: " + assetId + " (Due Date: " + dueDate + ")");
                             }
                         }
                         redirect(exchange, "/");
@@ -276,13 +274,12 @@ public class AdvancedLibrarySystem {
                                     "UPDATE books SET status='Available', borrower=NULL, due_date=NULL WHERE id=?")) {
                                 ps.setInt(1, Integer.parseInt(assetId));
                                 ps.executeUpdate();
-                                logSystemEvent("User " + sessionUser + " returned Book ID: " + assetId);
+                                recordUserActivity(sessionUser, "Returned Book", "Returned Asset ID: " + assetId + " to active catalog index.");
                             }
                         }
                         redirect(exchange, "/");
                         return;
                     }
-                    // RESTORED: Admin Panel features (Add Book)
                     else if ("/addBook".equals(path)) {
                         String title = params.getOrDefault("title", "").trim();
                         if ("admin".equals(sessionUser) && !title.isEmpty()) {
@@ -292,27 +289,25 @@ public class AdvancedLibrarySystem {
                                     ps.setInt(1, nextId);
                                     ps.setString(2, title);
                                     ps.executeUpdate();
-                                    logSystemEvent("Admin added asset entry: " + title);
+                                    recordUserActivity("admin", "Added Book", "Inserted asset entity: " + title + " as Asset ID: " + nextId);
                                 }
                             }
                         }
                         redirect(exchange, "/");
                         return;
                     }
-                    // RESTORED: Admin Panel features (Delete Book)
                     else if ("/deleteBook".equals(path)) {
                         String assetId = params.get("assetId");
                         if ("admin".equals(sessionUser) && assetId != null) {
                             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM books WHERE id=?")) {
                                 ps.setInt(1, Integer.parseInt(assetId));
                                 ps.executeUpdate();
-                                logSystemEvent("Admin purged asset record entity: " + assetId);
+                                recordUserActivity("admin", "Deleted Book", "Purged catalog file asset with ID target: " + assetId);
                             }
                         }
                         redirect(exchange, "/");
                         return;
                     }
-                    // NEW FEATURE INTERCEPT: Add item to favorites
                     else if ("/addFavorite".equals(path)) {
                         String assetId = params.get("assetId");
                         if (sessionUser != null && assetId != null) {
@@ -325,7 +320,6 @@ public class AdvancedLibrarySystem {
                         redirect(exchange, "/");
                         return;
                     }
-                    // NEW FEATURE INTERCEPT: Remove item from favorites
                     else if ("/removeFavorite".equals(path)) {
                         String assetId = params.get("assetId");
                         if (sessionUser != null && assetId != null) {
@@ -356,25 +350,53 @@ public class AdvancedLibrarySystem {
             html.append(".btn-action{padding:6px 14px;font-size:12px; border-radius:4px;} .btn-delete{background-color:#ef4444; color:white;} .btn-disabled{background-color:#cbd5e1;color:#94a3b8;cursor:not-allowed;}");
             html.append(".form-inline{display:flex;gap:10px;margin-bottom:15px;} .form-inline input[type='text']{padding:8px 12px;border:1px solid #cbd5e1;border-radius:4px;width:300px;}");
             html.append(".badge-borrowed{color:#ef4444;font-weight:500;} .search-container{margin-bottom:20px; display:flex; gap:10px;} .search-input{padding:10px; width:70%; border:1px solid #ccc; border-radius:4px;}");
-            html.append(".login-container{width:400px;margin:100px auto;background:#fff;padding:30px;border-radius:8px;text-align:center;border-top:5px solid #005abe;box-shadow:0 4px 15px rgba(0,0,0,0.08);}");
+            html.append(".login-container{width:420px;margin:100px auto;background:#fff;padding:30px;border-radius:8px;text-align:center;border-top:5px solid #005abe;box-shadow:0 4px 15px rgba(0,0,0,0.08);}");
             html.append(".login-container input[type='text']{width:100%;padding:12px;margin:15px 0;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;}");
             html.append(".btn-fav{background-color:#f59e0b; color:white;} .btn-fav-remove{background-color:#64748b; color:white;}");
+            html.append(".badge-log{padding:4px 8px; border-radius:4px; font-weight:600; font-size:11px; text-transform:uppercase;}");
+            html.append(".badge-login{background-color:#dbeafe; color:#1e40af;} .badge-logout{background-color:#fef2f2; color:#991b1b;}");
+            html.append(".badge-borrow{background-color:#fef3c7; color:#92400e;} .badge-return{background-color:#dcfce7; color:#166534;} .badge-register{background-color:#f3e8ff; color:#6b21a8;}");
             html.append("</style></head><body>");
 
             if (sessionUser == null) {
                 html.append("<div class='login-container'><h2>Library Web Access</h2>");
+                html.append("<p style='font-size:12px; color:gray; margin-top:-10px;'>Format Constraint Rules: <b>XXXX-XXXXXX</b> (Numbers only)</p>");
                 html.append("<form method='POST'>");
-                html.append("<input type='text' name='userId' placeholder='Identity Token (e.g., 2025-200491)' required autocomplete='off'/>");
+                html.append("<input type='text' name='userId' placeholder='Numerical Format: 2025-200491' required autocomplete='off' pattern='\\d{4}-\\d{6}' title='Must match format rules exactly: 4 digits, hyphen, 6 digits'/>");
                 html.append("<button type='submit' formaction='/login' class='btn' style='width:100%; margin-bottom:10px;'>Login Session</button>");
                 html.append("<button type='submit' formaction='/register' class='btn' style='width:100%; background-color:#22c55e;'>Register New ID</button>");
                 html.append("</form></div>");
             }
             else if ("admin".equalsIgnoreCase(sessionUser)) {
-                // FULLY RESTORED: Admin Panel Dashboard interface view
-                html.append("<div class='navbar'><h2>Hello, admin! (ADMIN DASHBOARD DESK)</h2>");
+                html.append("<div class='navbar'><h2>Hello, admin! (ADMINISTRATOR DESK)</h2>");
                 html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn btn-logout'>Logout</button></form></div>");
 
                 html.append("<div class='wrapper'>");
+
+                // NEW REALTIME AUDIT LOG TAB PANELS: View user history logs natively
+                html.append("<div class='card' style='border-top: 4px solid #6b21a8;'><h3>📊 Realtime User Activity & Transaction Logs</h3>");
+                html.append("<div style='max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0;'>");
+                html.append("<table><thead><tr><th>Timestamp</th><th>Account Reference</th><th>Event Context</th><th>Operational Log details</th></tr></thead><tbody>");
+                try {
+                    Connection conn = ensureDatabaseConnected();
+                    try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 50")) {
+                        while (rs.next()) {
+                            String act = rs.getString("action_type");
+                            String badgeClass = "badge-login";
+                            if ("Logged Out".equalsIgnoreCase(act)) badgeClass = "badge-logout";
+                            else if ("Borrowed Book".equalsIgnoreCase(act)) badgeClass = "badge-borrow";
+                            else if ("Returned Book".equalsIgnoreCase(act)) badgeClass = "badge-return";
+                            else if ("Registered".equalsIgnoreCase(act)) badgeClass = "badge-register";
+
+                            html.append("<tr><td style='color:gray; font-size:12px;'>").append(rs.getString("timestamp")).append("</td>");
+                            html.append("<td><b>").append(rs.getString("username")).append("</b></td>");
+                            html.append("<td><span class='badge-log ").append(badgeClass).append("'>").append(act).append("</span></td>");
+                            html.append("<td style='color:#475569;'>").append(rs.getString("details")).append("</td></tr>");
+                        }
+                    }
+                } catch (Exception e) {}
+                html.append("</tbody></table></div></div>");
+
                 html.append("<div class='card'><h3>Add New Book Asset</h3>");
                 html.append("<form action='/addBook' method='POST' class='form-inline'>");
                 html.append("<input type='text' name='title' placeholder='Book Title String' required autocomplete='off'/>");
@@ -401,7 +423,6 @@ public class AdvancedLibrarySystem {
 
                 html.append("<div class='card'><h3>Physical Catalog Inventory</h3>");
                 html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Status</th><th>Operation</th></tr>");
-
                 try {
                     Connection conn = ensureDatabaseConnected();
                     try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM books ORDER BY id ASC")) {
@@ -427,7 +448,6 @@ public class AdvancedLibrarySystem {
 
                 html.append("<div class='wrapper'>");
 
-                // NEW FEATURE VIEW: Saved Favorites List Dashboard Module
                 html.append("<div class='card' style='border-left: 5px solid #f59e0b;'><h3>⭐ My Saved Favorites List</h3>");
                 html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Status</th><th>Operation</th></tr>");
                 int favoriteItemsCount = 0;
@@ -460,7 +480,6 @@ public class AdvancedLibrarySystem {
 
                 html.append("<div class='card'><h3>My Active Borrowed Log</h3>");
                 html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Due Date (3-Day Limit)</th><th>Action</th></tr>");
-
                 int borrowedLogSize = 0;
                 try {
                     Connection conn = ensureDatabaseConnected();
@@ -481,15 +500,12 @@ public class AdvancedLibrarySystem {
                         }
                     }
                 } catch (Exception e) {}
-
                 if (borrowedLogSize == 0) {
                     html.append("<tr><td colspan='4' style='color:grey; text-align:center;'>You have no active borrowed items.</td></tr>");
                 }
                 html.append("</table></div>");
 
-                // GLOBAL SERVICE CATALOG WITH INTEGRATED FAVORITE TOGGLES
                 html.append("<div class='card'><h3>Global Inventory Index Catalog</h3>");
-
                 html.append("<div class='search-container'>");
                 html.append("<input type='text' id='searchInput' class='search-input' placeholder='Type title keyword to filter index list directly...' value='").append(searchQuery).append("'/>");
                 html.append("<button class='btn' onclick='runSearch()'>Search Catalog</button>");
@@ -497,13 +513,11 @@ public class AdvancedLibrarySystem {
                 html.append("<script>function runSearch(){ var val = document.getElementById('searchInput').value; window.location.href = '/?search=' + encodeURIComponent(val); }</script>");
 
                 html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Status</th><th>Operations</th></tr>");
-
                 String selectQuery = "SELECT * FROM books ORDER BY id ASC";
                 if (!searchQuery.isEmpty()) {
                     selectQuery = "SELECT * FROM books WHERE title LIKE ? ORDER BY id ASC";
                 }
 
-                // Gather set of user's current favorited book IDs for instant button layout state switching
                 Set<Integer> favoritedIds = new HashSet<>();
                 try {
                     Connection conn = ensureDatabaseConnected();
@@ -532,7 +546,6 @@ public class AdvancedLibrarySystem {
                                 html.append("<td>").append("Available".equals(status) ? "Available" : "<span class='badge-borrowed'>Borrowed Out</span>").append("</td>");
                                 html.append("<td><div style='display:flex; gap:5px;'>");
 
-                                // Borrow Button
                                 if ("Available".equals(status)) {
                                     html.append("<form action='/borrow' method='POST' style='margin:0;'>");
                                     html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
@@ -542,7 +555,6 @@ public class AdvancedLibrarySystem {
                                     html.append("<button class='btn btn-action btn-disabled' disabled>Unavailable</button>");
                                 }
 
-                                // Favorite/Unfavorite Toggle action implementation
                                 if (favoritedIds.contains(id)) {
                                     html.append("<form action='/removeFavorite' method='POST' style='margin:0;'>");
                                     html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
@@ -554,7 +566,6 @@ public class AdvancedLibrarySystem {
                                     html.append("<button type='submit' class='btn btn-action btn-fav'>⭐ Favorite</button>");
                                     html.append("</form>");
                                 }
-
                                 html.append("</div></td></tr>");
                             }
                         }
@@ -564,6 +575,27 @@ public class AdvancedLibrarySystem {
             }
 
             html.append("</body></html>");
+            byte[] responseBytes = html.toString().getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(responseBytes);
+            }
+        }
+
+        // RENDERING HELPER: Generates a validation error landing template screen
+        private void displayValidationError(HttpExchange exchange, String errorMessage) throws IOException {
+            StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Validation Error</title>");
+            html.append("<style>body{font-family:'Segoe UI',sans-serif; background-color:#f4f7f9; text-align:center; padding-top:100px;}");
+            html.append(".error-box{max-width:500px; margin:0 auto; background:white; padding:40px; border-radius:8px; border-top:5px solid #ef4444; box-shadow:0 4px 10px rgba(0,0,0,0.05);}");
+            html.append(".btn{background-color:#005abe; color:white; padding:10px 20px; border:none; border-radius:4px; text-decoration:none; font-weight:600; cursor:pointer;}");
+            html.append("</style></head><body><div class='error-box'>");
+            html.append("<h2 style='color:#ef4444;'>Validation Error</h2>");
+            html.append("<p style='color:#475569; margin-bottom:25px; line-height:1.5;'>").append(errorMessage).append("</p>");
+            html.append("<a href='/' class='btn'>Return to Sign In</a>");
+            html.append("</div></body></html>");
+
             byte[] responseBytes = html.toString().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, responseBytes.length);
