@@ -541,8 +541,13 @@ private void refreshStudentCatalog() {
         } catch(Exception e){}
     }
 
-    private void refreshStudentPersonalLog() {}
-    private void refreshAdminTables() {}
+    private void refreshStudentPersonalLog() {
+        // Your logic here
+    }
+
+    private void refreshAdminTables() {
+        // Your logic here
+    }
 
     public static void main(String[] args) {
         if (System.getenv("PORT") != null) {
