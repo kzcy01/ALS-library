@@ -25,18 +25,17 @@ public class AdvancedLibrarySystem {
     public AdvancedLibrarySystem() {
         logSystemEvent("Advanced Core Management System Initializing...");
 
-        // 1. Maintain table integrity & seed exactly 100 actual data units
+        // Ensure database table integrity before booting the interfaces
         initializeAndRepairDatabaseSchema();
         seedDataInventory();
 
-        // 2. Start the integrated web container
         startLocalhostWebServer();
 
         boolean isHeadless = "true".equals(System.getProperty("java.awt.headless"));
         if (!isHeadless) {
             setupLocalDesktopFrame();
         } else {
-            System.out.println("[SYSTEM RUNTIME] Running in cloud production headlessly. Access interface via your public web link.");
+            System.out.println("[SYSTEM RUNTIME] Running headlessly in cloud database environment.");
         }
     }
 
@@ -62,8 +61,7 @@ public class AdvancedLibrarySystem {
 
     private void initializeAndRepairDatabaseSchema() {
         try (Connection conn = getConnection(); Statement st = conn.createStatement()) {
-            // Drop problematic, corrupted table tracking artifacts if metadata schemas mismatch
-            // This guarantees the 'status' column is explicitly mapped as expected
+            // Verify base table constraints
             st.execute("CREATE TABLE IF NOT EXISTS books (" +
                     "id INT PRIMARY KEY, " +
                     "title VARCHAR(255) NOT NULL, " +
@@ -71,11 +69,11 @@ public class AdvancedLibrarySystem {
                     "borrower VARCHAR(100) DEFAULT NULL, " +
                     "due_date VARCHAR(50) DEFAULT NULL);");
 
-            // Validate structural existence of the 'status' column in case of dirty database transitions
+            // DYNAMIC HOTFIX: Validate structural existence of the 'status' column directly in database metadata
             DatabaseMetaData md = conn.getMetaData();
             try (ResultSet rs = md.getColumns(null, null, "books", "status")) {
                 if (!rs.next()) {
-                    logSystemEvent("CRITICAL ALERT: 'status' column missing in live cluster DB. Executing real-time hotfix patch...");
+                    logSystemEvent("CRITICAL ALERT: 'status' column missing in live DB instance. Patching table structural layout...");
                     st.execute("ALTER TABLE books ADD COLUMN status VARCHAR(50) DEFAULT 'Available';");
                 }
             }
@@ -97,7 +95,7 @@ public class AdvancedLibrarySystem {
 
             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM books;");
             if (rs.next() && rs.getInt(1) < 100) {
-                logSystemEvent("Inventory is under target threshold. Seeding 100 genuine book references...");
+                logSystemEvent("Inventory under target capacity. Seeding up to 100 genuine textbook titles...");
 
                 String[] genuineTitles = {
                     "The Great Gatsby", "To Kill a Mockingbird", "1984", "Pride and Prejudice", "The Catcher in the Rye",
@@ -134,7 +132,7 @@ public class AdvancedLibrarySystem {
                     }
                     ps.executeBatch();
                     conn.commit();
-                    logSystemEvent("Global database catalog populated successfully with " + genuineTitles.length + " distinct entries.");
+                    logSystemEvent("Database catalog initialized successfully with " + genuineTitles.length + " entries.");
                 } catch (Exception ex) {
                     conn.rollback();
                     throw ex;
@@ -167,7 +165,7 @@ public class AdvancedLibrarySystem {
             webServer.createContext("/", new ApplicationRouterHandler());
             webServer.setExecutor(null);
             webServer.start();
-            logSystemEvent("Library Portal live on web server port gateway: " + port);
+            logSystemEvent("Library Portal live on web gateway port: " + port);
         } catch (IOException e) {
             System.err.println("Failed to bind web socket channel: " + e.getMessage());
         }
@@ -194,7 +192,7 @@ public class AdvancedLibrarySystem {
                 } catch (Exception e) {}
             }
 
-            // POST Action Router Logic Engine
+            // POST Actions Controller Router (Security Parameterized Fixes)
             if ("POST".equalsIgnoreCase(method)) {
                 if ("/login".equals(path)) {
                     String uid = params.getOrDefault("userId", "").trim();
@@ -228,7 +226,7 @@ public class AdvancedLibrarySystem {
                 else if ("/borrow".equals(path)) {
                     String assetId = params.get("assetId");
                     if (sessionUser != null && assetId != null) {
-                        // FIX: Calculate target return frame precisely to exactly 3 days out
+                        // Enforce exactly a 3-day borrow return limit rule
                         Calendar cal = Calendar.getInstance();
                         cal.add(Calendar.DAY_OF_MONTH, 3);
                         String dueDate = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
@@ -240,7 +238,7 @@ public class AdvancedLibrarySystem {
                             ps.setInt(3, Integer.parseInt(assetId));
                             int updated = ps.executeUpdate();
                             if (updated > 0) {
-                                logSystemEvent("User " + sessionUser + " successfully borrowed Asset ID: " + assetId + " (Due in 3 Days: " + dueDate + ")");
+                                logSystemEvent("User " + sessionUser + " successfully borrowed Asset ID: " + assetId + " (Due Date: " + dueDate + ")");
                             }
                         } catch (Exception e) {
                             logSystemEvent("Borrow process failed error: " + e.getMessage());
@@ -256,7 +254,7 @@ public class AdvancedLibrarySystem {
                                 "UPDATE books SET status='Available', borrower=NULL, due_date=NULL WHERE id=?")) {
                             ps.setInt(1, Integer.parseInt(assetId));
                             ps.executeUpdate();
-                            logSystemEvent("User " + sessionUser + " processed resource return check-in for Asset ID: " + assetId);
+                            logSystemEvent("User " + sessionUser + " checked back in Asset ID: " + assetId);
                         } catch (Exception e) {
                             logSystemEvent("Return processing error: " + e.getMessage());
                         }
@@ -275,7 +273,7 @@ public class AdvancedLibrarySystem {
                                 ps.setInt(1, nextId);
                                 ps.setString(2, title);
                                 ps.executeUpdate();
-                                logSystemEvent("Admin added new book entry: \"" + title + "\" [Assigned ID: " + nextId + "]");
+                                logSystemEvent("Admin added book: \"" + title + "\" [Assigned ID: " + nextId + "]");
                             }
                         } catch (Exception e) {
                             logSystemEvent("Add Asset operation failed: " + e.getMessage());
@@ -300,7 +298,7 @@ public class AdvancedLibrarySystem {
                 }
             }
 
-            // GET Method Interface Render Engine
+            // HTML Web Response Engine
             StringBuilder html = new StringBuilder();
             html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
             html.append("<title>Advanced Cloud Library System</title>");
@@ -323,7 +321,7 @@ public class AdvancedLibrarySystem {
             html.append("</style></head><body>");
 
             if (sessionUser == null) {
-                // UI View 1: Authentication Gateway Logins
+                // View 1: Authentication Form Panel
                 html.append("<div class='login-container'><h2>Library Web Access</h2>");
                 html.append("<form action='/login' method='POST'>");
                 html.append("<input type='text' name='userId' placeholder='Identity Token (e.g., admin or 2025-200491)' required autocomplete='off'/>");
@@ -332,7 +330,7 @@ public class AdvancedLibrarySystem {
                 html.append("</form></div>");
             }
             else if ("admin".equalsIgnoreCase(sessionUser)) {
-                // UI View 2: Administrative Command Console
+                // View 2: Administrative Desk UI Dashboard view
                 html.append("<div class='navbar'><h2>Hello, admin! (ADMIN PANEL)</h2>");
                 html.append("<form action='/logout' method='POST'><button type='submit' class='btn btn-logout'>Logout</button></form></div>");
 
@@ -374,7 +372,7 @@ public class AdvancedLibrarySystem {
                 html.append("</div></div></div>");
             }
             else {
-                // UI View 3: Standard Authorized Student Interface View Panel
+                // View 3: Student Core Account Dashboard Interface
                 html.append("<div class='navbar'><h2>Hello, ").append(sessionUser).append("! | Student Desk</h2>");
                 html.append("<form action='/logout' method='POST'><button type='submit' class='btn btn-logout'>Logout</button></form></div>");
 
