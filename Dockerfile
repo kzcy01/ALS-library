@@ -1,5 +1,5 @@
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 COPY . .
-RUN javac AdvancedLibrarySystem.java
-CMD ["java", "AdvancedLibrarySystem"]
+RUN javac src/AdvancedLibrarySystem.java
+CMD ["java", "-cp", "src", "AdvancedLibrarySystem"]
