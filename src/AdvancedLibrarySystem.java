@@ -6,7 +6,9 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -23,12 +25,10 @@ public class AdvancedLibrarySystem {
     private static Connection sharedConnection = null;
     private static final List<String> operationsLog = Collections.synchronizedList(new ArrayList<>());
     private static final Map<String, String> tokenToUserMap = Collections.synchronizedMap(new HashMap<>());
-
-    // Pattern validation supporting 'admin' or formatting constraints
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^(admin|\\d{4}-\\d{6})$");
 
     public AdvancedLibrarySystem() {
-        logSystemEvent("Initializing Secured Library Core Management Suite...");
+        logSystemEvent("Initializing Ultra-Advanced Wattpad-Style Library Management Engine...");
         try {
             ensureDatabaseConnected();
             initializeAndRepairDatabaseSchema();
@@ -78,20 +78,17 @@ public class AdvancedLibrarySystem {
                         "title VARCHAR(255) NOT NULL, " +
                         "status VARCHAR(50) DEFAULT 'Available', " +
                         "borrower VARCHAR(100) DEFAULT NULL, " +
-                        "due_date VARCHAR(50) DEFAULT NULL);");
+                        "due_date VARCHAR(50) DEFAULT NULL," +
+                        "chapters INT DEFAULT 12," +
+                        "read_time_mins INT DEFAULT 45);");
 
-                // 1. Create base users table layout
                 st.execute("CREATE TABLE IF NOT EXISTS users (" +
                         "username VARCHAR(100) PRIMARY KEY, " +
                         "role VARCHAR(50) DEFAULT 'Standard Student');");
 
-                // 2. SCHEMA HOTFIX: Force columns update checking on the table schema live
-                try {
-                    st.execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '123456';");
-                    logSystemEvent("Hotfix column patch integrated on core database infrastructure.");
-                } catch (SQLException ex) {
-                    // Column already exists, swallow safely
-                }
+                try { st.execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '123456';"); } catch (SQLException e){}
+                try { st.execute("ALTER TABLE books ADD COLUMN chapters INT DEFAULT 12;"); } catch (SQLException e){}
+                try { st.execute("ALTER TABLE books ADD COLUMN read_time_mins INT DEFAULT 45;"); } catch (SQLException e){}
 
                 st.execute("CREATE TABLE IF NOT EXISTS favorites (" +
                         "username VARCHAR(100), " +
@@ -105,10 +102,17 @@ public class AdvancedLibrarySystem {
                         "details VARCHAR(255), " +
                         "timestamp VARCHAR(50));");
 
-                logSystemEvent("Database table schema updated with tracking metrics.");
+                st.execute("CREATE TABLE IF NOT EXISTS comments (" +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "book_id INT, " +
+                        "username VARCHAR(100), " +
+                        "comment_text TEXT, " +
+                        "timestamp VARCHAR(50));");
+
+                logSystemEvent("Schema architecture synced securely with advanced social interaction engines.");
             }
         } catch (Exception e) {
-            System.err.println("Schema structure configuration alert: " + e.getMessage());
+            System.err.println("Schema configuration mismatch: " + e.getMessage());
         }
     }
 
@@ -132,47 +136,35 @@ public class AdvancedLibrarySystem {
     private void seedDataInventory() {
         try {
             Connection conn = ensureDatabaseConnected();
-
-            // ADMIN OVERWRITE SECURITY PATTERN: Ensure admin profile matches setup values cleanly
             try (Statement st = conn.createStatement()) {
                 st.execute("DELETE FROM users WHERE username='admin';");
             }
-
             try (PreparedStatement ps = conn.prepareStatement("INSERT INTO users (username, password, role) VALUES (?, ?, ?)")) {
                 ps.setString(1, "admin");
                 ps.setString(2, "admin123");
                 ps.setString(3, "Administrator");
                 ps.executeUpdate();
-                logSystemEvent("Admin security token seeded and verified: [Username: admin | Password: admin123]");
             }
 
             try (Statement st = conn.createStatement()) {
                 ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM books;");
-                if (rs.next() && rs.getInt(1) < 10) {
-                    String[] genuineTitles = {
-                        "The Great Gatsby", "To Kill a Mockingbird", "1984", "Pride and Prejudice", "The Catcher in the Rye",
-                        "The Hobbit", "Fahrenheit 451", "Jane Eyre", "Animal Farm", "The Lord of the Rings"
-                    };
-                    int currentId = 1001;
-                    for (String title : genuineTitles) {
-                        st.execute("INSERT IGNORE INTO books (id, title, status) VALUES (" + currentId + ", '" + title + "', 'Available');");
-                        currentId++;
-                    }
+                if (rs.next() && rs.getInt(1) < 5) {
+                    st.execute("INSERT IGNORE INTO books (id, title, status, chapters, read_time_mins) VALUES (1001, 'CEO Alpha Billionaire Obsession', 'Available', 48, 180);");
+                    st.execute("INSERT IGNORE INTO books (id, title, status, chapters, read_time_mins) VALUES (1002, 'The Hybrid Queen Lost Kingdom', 'Available', 32, 110);");
+                    st.execute("INSERT IGNORE INTO books (id, title, status, chapters, read_time_mins) VALUES (1003, '1984 Cyber Dystopia', 'Available', 15, 95);");
                 }
             }
-        } catch (Exception e) {
-            System.err.println("Database seeding verification error: " + e.getMessage());
-        }
+        } catch (Exception e) {}
     }
 
     private void setupLocalDesktopFrame() {
         try {
-            mainFrame = new JFrame("Advanced Server Gateway Controller");
+            mainFrame = new JFrame("Advanced Core Controller Engine");
             mainFrame.setSize(400, 200);
             mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            localModel = new DefaultTableModel(new String[]{"Service Engine Status"}, 0);
+            localModel = new DefaultTableModel(new String[]{"Engine Status Matrix"}, 0);
             JTable statusTable = new JTable(localModel);
-            localModel.addRow(new Object[]{"HTTP Core Server Running Live..."});
+            localModel.addRow(new Object[]{"Web Engine operating live..."});
             mainFrame.add(new JScrollPane(statusTable), BorderLayout.CENTER);
             mainFrame.setLocationRelativeTo(null);
             mainFrame.setVisible(true);
@@ -185,11 +177,11 @@ public class AdvancedLibrarySystem {
             int port = (portEnv != null) ? Integer.parseInt(portEnv) : 8080;
             webServer = HttpServer.create(new InetSocketAddress(port), 0);
             webServer.createContext("/", new ApplicationRouterHandler());
-            webServer.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(10));
+            webServer.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(15));
             webServer.start();
-            logSystemEvent("Server operating live on port: " + port);
+            logSystemEvent("Framework live on system gateway channel: " + port);
         } catch (IOException e) {
-            System.err.println("Failed to start server: " + e.getMessage());
+            System.err.println("Web core failed initialization: " + e.getMessage());
         }
     }
 
@@ -211,6 +203,32 @@ public class AdvancedLibrarySystem {
             return null;
         }
 
+        private String fetchOpenLibraryBooksJSON(String search) {
+            try {
+                String cleanQuery = search.replace(" ", "+");
+                URL url = new URL("https://openlibrary.org/search.json?title=" + cleanQuery + "&limit=3");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+                    return response.toString();
+                }
+            } catch (Exception e) {
+                System.err.println("OpenLibrary API fetching alert: " + e.getMessage());
+            }
+            return "";
+        }
+
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
@@ -219,15 +237,21 @@ public class AdvancedLibrarySystem {
             Map<String, String> params = parseFormBody(exchange);
 
             String sessionUser = getSessionUser(exchange);
-            String searchQuery = "";
+            String localSearchQuery = "";
+            String apiSearchQuery = "";
 
-            if (query != null && query.contains("search=")) {
-                try {
-                    String[] queryParts = query.split("search=");
-                    if (queryParts.length > 1) {
-                        searchQuery = URLDecoder.decode(queryParts[1], StandardCharsets.UTF_8.name()).trim();
+            if (query != null) {
+                String[] pairs = query.split("&");
+                for (String pair : pairs) {
+                    String[] idx = pair.split("=");
+                    if (idx.length > 1) {
+                        if (idx[0].equals("search")) {
+                            localSearchQuery = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
+                        } else if (idx[0].equals("apiSearch")) {
+                            apiSearchQuery = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
+                        }
                     }
-                } catch (Exception e) {}
+                }
             }
 
             if ("POST".equalsIgnoreCase(method)) {
@@ -237,76 +261,43 @@ public class AdvancedLibrarySystem {
                     if ("/login".equals(path)) {
                         String uid = params.getOrDefault("userId", "").trim();
                         String pass = params.getOrDefault("password", "").trim();
-
-                        if (!STUDENT_ID_PATTERN.matcher(uid).matches()) {
-                            displayValidationError(exchange, "Access Denied: Format rules mismatched.");
+                        if (uid.isEmpty() || pass.isEmpty()) {
+                            displayValidationError(exchange, "Identity error parameters empty.");
                             return;
                         }
-
                         try (PreparedStatement ps = conn.prepareStatement("SELECT password FROM users WHERE username=?")) {
                             ps.setString(1, uid);
                             ResultSet rs = ps.executeQuery();
-                            if (rs.next()) {
-                                String savedPassword = rs.getString("password");
-                                if (savedPassword.equals(pass)) {
-                                    String token = UUID.randomUUID().toString();
-                                    tokenToUserMap.put(token, uid);
-                                    exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=" + token + "; Path=/; HttpOnly");
-                                    recordUserActivity(uid, "Logged In", "Verified successfully.");
-                                    redirect(exchange, "/");
-                                    return;
-                                } else {
-                                    displayValidationError(exchange, "Error: Password mismatch validation failed.");
-                                    return;
-                                }
-                            } else {
-                                displayValidationError(exchange, "Account not found. Please register this ID.");
+                            if (rs.next() && rs.getString("password").equals(pass)) {
+                                String token = UUID.randomUUID().toString();
+                                tokenToUserMap.put(token, uid);
+                                exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=" + token + "; Path=/; HttpOnly");
+                                recordUserActivity(uid, "Logged In", "Session initialized successfully.");
+                                redirect(exchange, "/");
                                 return;
                             }
                         }
+                        displayValidationError(exchange, "Invalid credentials. Try standard 'admin' / 'admin123'.");
+                        return;
                     }
                     else if ("/register".equals(path)) {
                         String uid = params.getOrDefault("userId", "").trim();
                         String pass = params.getOrDefault("password", "").trim();
-
-                        if ("admin".equalsIgnoreCase(uid)) {
-                            displayValidationError(exchange, "Operation Aborted: Reserved identifier token.");
+                        if (!STUDENT_ID_PATTERN.matcher(uid).matches() || "admin".equalsIgnoreCase(uid)) {
+                            displayValidationError(exchange, "Invalid user identifier code format rule constraint.");
                             return;
                         }
-                        if (!STUDENT_ID_PATTERN.matcher(uid).matches()) {
-                            displayValidationError(exchange, "Formatting mismatch standard constraint triggered.");
-                            return;
+                        try (PreparedStatement ps = conn.prepareStatement("INSERT INTO users (username, password, role) VALUES (?, ?, 'Standard Student')")) {
+                            ps.setString(1, uid);
+                            ps.setString(2, pass);
+                            ps.executeUpdate();
+                            recordUserActivity(uid, "Registered", "Account initialized into schema profiles.");
                         }
-                        if (pass.isEmpty()) {
-                            displayValidationError(exchange, "Password field cannot be empty.");
-                            return;
-                        }
-
-                        try (PreparedStatement checkPs = conn.prepareStatement("SELECT username FROM users WHERE username=?")) {
-                            checkPs.setString(1, uid);
-                            if (checkPs.executeQuery().next()) {
-                                displayValidationError(exchange, "Identity Conflict: Student record already exists.");
-                                return;
-                            }
-                        }
-
-                        try (PreparedStatement insertPs = conn.prepareStatement("INSERT INTO users (username, password, role) VALUES (?, ?, 'Standard Student')")) {
-                            insertPs.setString(1, uid);
-                            insertPs.setString(2, pass);
-                            insertPs.executeUpdate();
-                            recordUserActivity(uid, "Registered", "Account created successfully.");
-                        }
-
-                        String token = UUID.randomUUID().toString();
-                        tokenToUserMap.put(token, uid);
-                        exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=" + token + "; Path=/; HttpOnly");
                         redirect(exchange, "/");
                         return;
                     }
                     else if ("/logout".equals(path)) {
-                        if (sessionUser != null) {
-                            recordUserActivity(sessionUser, "Logged Out", "Destroyed session token.");
-                        }
+                        if (sessionUser != null) recordUserActivity(sessionUser, "Logged Out", "Session clean up ran.");
                         exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
                         redirect(exchange, "/");
                         return;
@@ -314,17 +305,13 @@ public class AdvancedLibrarySystem {
                     else if ("/borrow".equals(path)) {
                         String assetId = params.get("assetId");
                         if (sessionUser != null && assetId != null) {
-                            Calendar cal = Calendar.getInstance();
-                            cal.add(Calendar.DAY_OF_MONTH, 3);
-                            String dueDate = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
-
-                            try (PreparedStatement ps = conn.prepareStatement(
-                                    "UPDATE books SET status='Borrowed Out', borrower=?, due_date=? WHERE id=?")) {
-                                ps.setString(1, sessionUser.trim());
+                            String dueDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date(System.currentTimeMillis() + 259200000L));
+                            try (PreparedStatement ps = conn.prepareStatement("UPDATE books SET status='Borrowed Out', borrower=?, due_date=? WHERE id=?")) {
+                                ps.setString(1, sessionUser);
                                 ps.setString(2, dueDate);
                                 ps.setInt(3, Integer.parseInt(assetId));
                                 ps.executeUpdate();
-                                recordUserActivity(sessionUser, "Borrowed Book", "Book ID: " + assetId);
+                                recordUserActivity(sessionUser, "Borrowed Book", "Asset Tracking code referenced: " + assetId);
                             }
                         }
                         redirect(exchange, "/");
@@ -333,11 +320,10 @@ public class AdvancedLibrarySystem {
                     else if ("/return".equals(path)) {
                         String assetId = params.get("assetId");
                         if (sessionUser != null && assetId != null) {
-                            try (PreparedStatement ps = conn.prepareStatement(
-                                    "UPDATE books SET status='Available', borrower=NULL, due_date=NULL WHERE id=?")) {
+                            try (PreparedStatement ps = conn.prepareStatement("UPDATE books SET status='Available', borrower=NULL, due_date=NULL WHERE id=?")) {
                                 ps.setInt(1, Integer.parseInt(assetId));
                                 ps.executeUpdate();
-                                recordUserActivity(sessionUser, "Returned Book", "Book ID: " + assetId);
+                                recordUserActivity(sessionUser, "Returned Book", "Asset Tracking back inside database.");
                             }
                         }
                         redirect(exchange, "/");
@@ -346,14 +332,48 @@ public class AdvancedLibrarySystem {
                     else if ("/addBook".equals(path)) {
                         String title = params.getOrDefault("title", "").trim();
                         if ("admin".equals(sessionUser) && !title.isEmpty()) {
+                            int nextId = 1001;
                             try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT MAX(id) FROM books")) {
-                                int nextId = (rs.next() && rs.getInt(1) >= 1001) ? rs.getInt(1) + 1 : 1001;
-                                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO books (id, title, status) VALUES (?, ?, 'Available')")) {
-                                    ps.setInt(1, nextId);
-                                    ps.setString(2, title);
-                                    ps.executeUpdate();
-                                    recordUserActivity("admin", "Added Book", "Title: " + title);
-                                }
+                                if (rs.next() && rs.getInt(1) >= 1001) nextId = rs.getInt(1) + 1;
+                            }
+                            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO books (id, title, status, chapters, read_time_mins) VALUES (?, ?, 'Available', 14, 65)")) {
+                                ps.setInt(1, nextId);
+                                ps.setString(2, title);
+                                ps.executeUpdate();
+                                recordUserActivity("admin", "Added Book", "Dynamic creation inside inventory: " + title);
+                            }
+                        }
+                        redirect(exchange, "/");
+                        return;
+                    }
+                    else if ("/addComment".equals(path)) {
+                        String bid = params.get("bookId");
+                        String text = params.getOrDefault("commentText", "").trim();
+                        if (sessionUser != null && bid != null && !text.isEmpty()) {
+                            String time = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date());
+                            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO comments (book_id, username, comment_text, timestamp) VALUES (?, ?, ?, ?)")) {
+                                ps.setInt(1, Integer.parseInt(bid));
+                                ps.setString(2, sessionUser);
+                                ps.setString(3, text);
+                                ps.setString(4, time);
+                                ps.executeUpdate();
+                            }
+                        }
+                        redirect(exchange, "/?tab=books");
+                        return;
+                    }
+                    else if ("/importApiBook".equals(path)) {
+                        String title = params.getOrDefault("title", "Unknown API Book").trim();
+                        if ("admin".equals(sessionUser)) {
+                            int nextId = 2001;
+                            try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT MAX(id) FROM books")) {
+                                if (rs.next() && rs.getInt(1) >= 1001) nextId = rs.getInt(1) + 1;
+                            }
+                            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO books (id, title, status, chapters, read_time_mins) VALUES (?, ?, 'Available', 24, 120)")) {
+                                ps.setInt(1, nextId);
+                                ps.setString(2, title);
+                                ps.executeUpdate();
+                                recordUserActivity("admin", "API Import", "Imported via Open Library Gateway: " + title);
                             }
                         }
                         redirect(exchange, "/");
@@ -365,7 +385,6 @@ public class AdvancedLibrarySystem {
                             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM books WHERE id=?")) {
                                 ps.setInt(1, Integer.parseInt(assetId));
                                 ps.executeUpdate();
-                                recordUserActivity("admin", "Deleted Book", "Book ID: " + assetId);
                             }
                         }
                         redirect(exchange, "/");
@@ -375,7 +394,7 @@ public class AdvancedLibrarySystem {
                         String assetId = params.get("assetId");
                         if (sessionUser != null && assetId != null) {
                             try (PreparedStatement ps = conn.prepareStatement("INSERT IGNORE INTO favorites (username, book_id) VALUES (?, ?)")) {
-                                ps.setString(1, sessionUser.trim());
+                                ps.setString(1, sessionUser);
                                 ps.setInt(2, Integer.parseInt(assetId));
                                 ps.executeUpdate();
                             }
@@ -387,7 +406,7 @@ public class AdvancedLibrarySystem {
                         String assetId = params.get("assetId");
                         if (sessionUser != null && assetId != null) {
                             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM favorites WHERE username=? AND book_id=?")) {
-                                ps.setString(1, sessionUser.trim());
+                                ps.setString(1, sessionUser);
                                 ps.setInt(2, Integer.parseInt(assetId));
                                 ps.executeUpdate();
                             }
@@ -396,299 +415,291 @@ public class AdvancedLibrarySystem {
                         return;
                     }
                 } catch (Exception e) {
-                    logSystemEvent("Processing error encountered: " + e.getMessage());
+                    logSystemEvent("Operational alert engine trace: " + e.getMessage());
                 }
             }
 
             StringBuilder html = new StringBuilder();
             html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
-            html.append("<title>Library Core Suite Hub</title>");
+            html.append("<title>Wattpad Infinite Library Network Suite</title>");
             html.append("<style>");
-            html.append("body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:0;background-color:#f4f7f9;color:#333;}");
-            html.append(".navbar{background-color:#005abe;color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,0.1);}");
-            html.append(".navbar h2{margin:0;font-size:20px;font-weight:500;} .btn-logout{background:#ef4444;color:white;border:none;padding:8px 16px;font-size:13px;border-radius:4px;cursor:pointer;}");
-            html.append(".wrapper{max-width:1200px;margin:30px auto;padding:0 20px;} .card{background:#fff;padding:25px;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,0.04);margin-bottom:25px;}");
-            html.append("table{width:100%;border-collapse:collapse;margin-top:10px;} th,td{padding:12px 15px;text-align:left;border-bottom:1px solid #e2e8f0;font-size:14px;}");
-            html.append("th{background-color:#f8fafc;color:#475569;font-weight:600;} .btn{background-color:#005abe;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-weight:600;}");
-            html.append(".btn-action{padding:6px 14px;font-size:12px; border-radius:4px;} .btn-delete{background-color:#ef4444; color:white;} .btn-disabled{background-color:#cbd5e1;color:#94a3b8;cursor:not-allowed;}");
-            html.append(".form-inline{display:flex;gap:10px;margin-bottom:15px;} .form-inline input{padding:8px 12px;border:1px solid #cbd5e1;border-radius:4px;width:250px;}");
-            html.append(".badge-borrowed{color:#ef4444;font-weight:500;} .search-container{margin-bottom:20px; display:flex; gap:10px;} .search-input{padding:10px; width:70%; border:1px solid #ccc; border-radius:4px;}");
-            html.append(".login-container{width:420px;margin:100px auto;background:#fff;padding:30px;border-radius:8px;border-top:5px solid #005abe;box-shadow:0 4px 15px rgba(0,0,0,0.08);}");
-            html.append(".login-container input{width:100%;padding:12px;margin:8px 0 15px 0;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;}");
-            html.append(".btn-fav{background-color:#f59e0b; color:white;} .btn-fav-remove{background-color:#64748b; color:white;}");
-            html.append(".badge-log{padding:4px 8px; border-radius:4px; font-weight:600; font-size:11px; text-transform:uppercase;}");
-            html.append(".badge-login{background-color:#dbeafe; color:#1e40af;} .badge-logout{background-color:#fef2f2; color:#991b1b;}");
-            html.append(".badge-borrow{background-color:#fef3c7; color:#92400e;} .badge-return{background-color:#dcfce7; color:#166534;} .badge-register{background-color:#f3e8ff; color:#6b21a8;}");
-            html.append("</style></head><body>");
+            html.append(":root { --bg: #f4f7f9; --card-bg: #ffffff; --text: #333333; --primary: #ff4500; --nav-bg: #1a1a1a; --border: #e2e8f0; }");
+            html.append("body.dark-mode { --bg: #0f0f12; --card-bg: #181820; --text: #f1f5f9; --nav-bg: #050507; --border: #2d2d3d; }");
+            html.append("body { background-color: var(--bg); color: var(--text); font-family:'Segoe UI',sans-serif; margin:0; padding:0; transition: background 0.3s, color 0.3s; }");
+            html.append(".navbar { background-color: var(--nav-bg); color: white; padding:15px 30px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 12px rgba(0,0,0,0.15); }");
+            html.append(".navbar h2 { margin:0; font-weight:600; font-size:22px; color: #ff4500; display:flex; align-items:center; gap:8px; }");
+            html.append(".btn { background-color: #ff4500; color:white; border:none; padding:10px 18px; border-radius:30px; cursor:pointer; font-weight:600; font-size:13px; transition: 0.2s transform; }");
+            html.append(".btn:hover { transform: scale(1.03); } .btn-secondary { background-color: #4a5568; }");
+            html.append(".wrapper { max-width:1250px; margin:30px auto; padding:0 20px; }");
+            html.append(".tabs-header { display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid var(--border); padding-bottom:10px; }");
+            html.append(".tab-link { padding:10px 20px; font-weight:600; cursor:pointer; background:none; border:none; color: var(--text); border-radius:5px; text-decoration:none; }");
+            html.append(".tab-link.active { background-color: #ff4500; color:white; }");
+            html.append(".card { background: var(--card-bg); padding:25px; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.02); margin-bottom:25px; border: 1px solid var(--border); }");
+            html.append("table { width:100%; border-collapse:collapse; margin-top:10px; } th,td { padding:14px; text-align:left; border-bottom:1px solid var(--border); font-size:14px; }");
+            html.append("th { background-color: rgba(0,0,0,0.02); color: var(--text); font-weight:600; }");
+            html.append(".wattpad-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; margin-top: 15px; }");
+            html.append(".book-card { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 12px; position:relative; box-shadow: 0 4px 10px rgba(0,0,0,0.01); }");
+            html.append(".book-meta { display:flex; gap:15px; font-size:12px; color: gray; margin: 10px 0; }");
+            html.append(".metric-badge { background: rgba(255, 69, 0, 0.1); color: #ff4500; padding: 3px 8px; border-radius: 20px; font-weight: 700; }");
+            html.append(".login-container { width:400px; margin:120px auto; background: var(--card-bg); padding:35px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.1); border-top: 6px solid #ff4500; }");
+            html.append(".login-container input { width:100%; padding:12px; margin:10px 0 18px 0; border:1px solid var(--border); border-radius:6px; box-sizing:border-box; background: var(--bg); color: var(--text); }");
+            html.append(".comment-section { margin-top:15px; background: rgba(0,0,0,0.01); padding:10px; border-radius:8px; }");
+            html.append(".comment-input { width:75%; padding:8px; border-radius:4px; border:1px solid var(--border); background: var(--bg); color: var(--text); }");
+            html.append(".reader-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; }");
+            html.append(".reader-box { background: #fffae9; color:#111; width:70%; height:80%; padding:40px; border-radius:12px; overflow-y:auto; font-family:'Georgia', serif; line-height:1.8; font-size:18px; position:relative; }");
+            html.append("</style>");
+            html.append("<script>");
+            html.append("function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }");
+            html.append("function loadTheme() { if(localStorage.getItem('theme')==='dark') document.body.classList.add('dark-mode'); }");
+            html.append("function openStoryReader(title) { document.getElementById('storyTitle').innerText = title; document.getElementById('readerPopup').style.display='flex'; }");
+            html.append("function closeStoryReader() { document.getElementById('readerPopup').style.display='none'; }");
+            html.append("</script>");
+            html.append("</head><body onload='loadTheme()'>");
 
             if (sessionUser == null) {
-                html.append("<div class='login-container'><h2 style='text-align:center;'>Library Web Access</h2>");
-                html.append("<p style='font-size:12px; color:gray; text-align:center; margin-top:-10px;'>Identity Rules: <b>admin</b> or student sequence (<b>XXXX-XXXXXX</b>)</p>");
+                html.append("<div class='login-container'><h2 style='text-align:center;'>🧡 wattpad cloud log</h2>");
                 html.append("<form method='POST'>");
-                html.append("<label style='font-size:13px; font-weight:600; color:#475569;'>Account Identity ID:</label>");
-                html.append("<input type='text' name='userId' placeholder='e.g., admin or 2026-102345' required autocomplete='off' pattern='admin|\\d{4}-\\d{6}' title='Accepts admin or exactly 4 digits, hyphen, 6 digits'/>");
-                html.append("<label style='font-size:13px; font-weight:600; color:#475569;'>Account Secret Password:</label>");
-                html.append("<input type='password' name='password' placeholder='Enter access password token key' required autocomplete='off'/>");
-                html.append("<button type='submit' formaction='/login' class='btn' style='width:100%; margin-bottom:10px;'>Login Session</button>");
-                html.append("<button type='submit' formaction='/register' class='btn' style='width:100%; background-color:#22c55e;'>Register New ID</button>");
+                html.append("<label style='font-size:12px; font-weight:600;'>Profile Account Code String:</label>");
+                html.append("<input type='text' name='userId' placeholder='admin or student sequence (XXXX-XXXXXX)' required pattern='admin|\\d{4}-\\d{6}'/>");
+                html.append("<label style='font-size:12px; font-weight:600;'>Security Access Cipher Key:</label>");
+                html.append("<input type='password' name='password' placeholder='Enter database passphrase mapping token' required/>");
+                html.append("<button type='submit' formaction='/login' class='btn' style='width:100%; margin-bottom:10px;'>Authorize Session Portal</button>");
+                html.append("<button type='submit' formaction='/register' class='btn btn-secondary' style='width:100%;'>Register Identity Record</button>");
                 html.append("</form></div>");
-            }
-            else if ("admin".equalsIgnoreCase(sessionUser)) {
-                html.append("<div class='navbar'><h2>Hello, admin! (ADMINISTRATOR DESK)</h2>");
-                html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn btn-logout'>Logout</button></form></div>");
-
-                html.append("<div class='wrapper'>");
-
-                html.append("<div class='card' style='border-top: 4px solid #6b21a8;'><h3>📊 Realtime User Activity & Transaction Logs</h3>");
-                html.append("<div style='max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0;'>");
-                html.append("<table><thead><tr><th>Timestamp</th><th>Account Reference</th><th>Event Context</th><th>Operational Log details</th></tr></thead><tbody>");
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 50")) {
-                        while (rs.next()) {
-                            String act = rs.getString("action_type");
-                            String badgeClass = "badge-login";
-                            if ("Logged Out".equalsIgnoreCase(act)) badgeClass = "badge-logout";
-                            else if ("Borrowed Book".equalsIgnoreCase(act)) badgeClass = "badge-borrow";
-                            else if ("Returned Book".equalsIgnoreCase(act)) badgeClass = "badge-return";
-                            else if ("Registered".equalsIgnoreCase(act)) badgeClass = "badge-register";
-
-                            html.append("<tr><td style='color:gray; font-size:12px;'>").append(rs.getString("timestamp")).append("</td>");
-                            html.append("<td><b>").append(rs.getString("username")).append("</b></td>");
-                            html.append("<td><span class='badge-log ").append(badgeClass).append("'>").append(act).append("</span></td>");
-                            html.append("<td style='color:#475569;'>").append(rs.getString("details")).append("</td></tr>");
-                        }
-                    }
-                } catch (Exception e) {}
-                html.append("</tbody></table></div></div>");
-
-                html.append("<div class='card'><h3>Add New Book Asset</h3>");
-                html.append("<form action='/addBook' method='POST' class='form-inline'>");
-                html.append("<input type='text' name='title' placeholder='Book Title String' required autocomplete='off'/>");
-                html.append("<button type='submit' class='btn'>Add Book</button>");
-                html.append("</form></div>");
-
-                html.append("<div class='card'><h3>Active Borrow Logs Matrix</h3>");
-                html.append("<table><tr><th>Book ID</th><th>Resource Title</th><th>Active Student Borrower</th><th>Target Due Date</th></tr>");
-                int logEntries = 0;
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM books WHERE borrower IS NOT NULL ORDER BY id ASC")) {
-                        while (rs.next()) {
-                            logEntries++;
-                            html.append("<tr><td>").append(rs.getInt("id")).append("</td>");
-                            html.append("<td>").append(rs.getString("title")).append("</td>");
-                            html.append("<td><b style='color:#005abe;'>").append(rs.getString("borrower")).append("</b></td>");
-                            html.append("<td style='color:red;'>").append(rs.getString("due_date")).append("</td></tr>");
-                        }
-                    }
-                } catch (Exception e) {}
-                if (logEntries == 0) html.append("<tr><td colspan='4' style='color:gray; text-align:center;'>No records are currently checked out.</td></tr>");
-                html.append("</table></div>");
-
-                html.append("<div class='card'><h3>Physical Catalog Inventory</h3>");
-                html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Status</th><th>Operation</th></tr>");
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM books ORDER BY id ASC")) {
-                        while (rs.next()) {
-                            int id = rs.getInt("id");
-                            String title = rs.getString("title");
-                            String status = rs.getString("status");
-                            html.append("<tr><td>").append(id).append("</td>");
-                            html.append("<td>").append(title).append("</td>");
-                            html.append("<td>").append("Available".equals(status) ? "Available" : "<span class='badge-borrowed'>Borrowed Out</span>").append("</td>");
-                            html.append("<td><form action='/deleteBook' method='POST' style='margin:0;'>");
-                            html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
-                            html.append("<button type='submit' class='btn btn-action btn-delete'>Remove Book</button>");
-                            html.append("</form></td></tr>");
-                        }
-                    }
-                } catch (Exception e) {}
-                html.append("</table></div></div>");
             }
             else {
-                html.append("<div class='navbar'><h2>Hello, ").append(sessionUser).append("! | Student Desk Portal</h2>");
-                html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn btn-logout'>Logout</button></form></div>");
+                String activeTab = "books";
+                if (query != null && query.contains("tab=")) {
+                    if (query.contains("tab=logs")) activeTab = "logs";
+                    else if (query.contains("tab=api")) activeTab = "api";
+                    else if (query.contains("tab=add")) activeTab = "add";
+                }
+
+                html.append("<div class='navbar'><h2>📚 Wattpad Infinite Library Network <sub>[" + sessionUser + "]</sub></h2>");
+                html.append("<div style='display:flex; gap:10px; align-items:center;'>");
+                html.append("<button class='btn btn-secondary' onclick='toggleDarkMode()' style='padding:6px 12px;'>🌗 Mode</button>");
+                html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn' style='background:#ef4444;'>Logout Account</button></form>");
+                html.append("</div></div>");
 
                 html.append("<div class='wrapper'>");
 
-                html.append("<div class='card' style='border-left: 5px solid #f59e0b;'><h3>⭐ My Saved Favorites List</h3>");
-                html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Status</th><th>Operation</th></tr>");
-                int favoriteItemsCount = 0;
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "SELECT b.id, b.title, b.status FROM favorites f JOIN books b ON f.book_id = b.id WHERE f.username = ? ORDER BY b.id ASC")) {
-                        ps.setString(1, sessionUser.trim());
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                favoriteItemsCount++;
-                                int id = rs.getInt("id");
-                                String title = rs.getString("title");
-                                String status = rs.getString("status");
-                                html.append("<tr><td>").append(id).append("</td>");
-                                html.append("<td>").append(title).append("</td>");
-                                html.append("<td>").append("Available".equals(status) ? "Available" : "<span class='badge-borrowed'>Borrowed Out</span>").append("</td>");
-                                html.append("<td><form action='/removeFavorite' method='POST' style='margin:0;'>");
-                                html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
-                                html.append("<button type='submit' class='btn btn-action btn-fav-remove'>Unfavorite</button>");
-                                html.append("</form></td></tr>");
-                            }
-                        }
-                    }
-                } catch (Exception e) {}
-                if (favoriteItemsCount == 0) {
-                    html.append("<tr><td colspan='4' style='color:grey; text-align:center;'>Your favorites shelf is currently empty. Click 'Favorite' below to pin books here!</td></tr>");
+                // Navigation Tabs Switcher Matrix
+                html.append("<div class='tabs-header'>");
+                html.append("<a class='tab-link ").append(activeTab.equals("books")?"active":"").append("' href='/?tab=books'>📖 Story Shelf Catalogue</a>");
+                html.append("<a class='tab-link ").append(activeTab.equals("logs")?"active":"").append("' href='/?tab=logs'>📑 Transaction System Logs</a>");
+                html.append("<a class='tab-link ").append(activeTab.equals("api")?"active":"").append("' href='/?tab=api'>🌐 Global Open Library Index Gateway</a>");
+                if ("admin".equals(sessionUser)) {
+                    html.append("<a class='tab-link ").append(activeTab.equals("add")?"active":"").append("' href='/?tab=add'>➕ System Inventory Provisioning</a>");
                 }
-                html.append("</table></div>");
-
-                html.append("<div class='card'><h3>My Active Borrowed Log</h3>");
-                html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Due Date (3-Day Limit)</th><th>Action</th></tr>");
-                int borrowedLogSize = 0;
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM books WHERE borrower=? ORDER BY id ASC")) {
-                        ps.setString(1, sessionUser.trim());
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                borrowedLogSize++;
-                                int id = rs.getInt("id");
-                                html.append("<tr><td>").append(id).append("</td>");
-                                html.append("<td>").append(rs.getString("title")).append("</td>");
-                                html.append("<td style='color:#ef4444; font-weight:bold;'>").append(rs.getString("due_date")).append("</td>");
-                                html.append("<td><form action='/return' method='POST' style='margin:0;'>");
-                                html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
-                                html.append("<button type='submit' class='btn btn-action' style='background-color:#22c55e; color:white;'>Return Resource</button>");
-                                html.append("</form></td></tr>");
-                            }
-                        }
-                    }
-                } catch (Exception e) {}
-                if (borrowedLogSize == 0) {
-                    html.append("<tr><td colspan='4' style='color:grey; text-align:center;'>You have no active borrowed items.</td></tr>");
-                }
-                html.append("</table></div>");
-
-                html.append("<div class='card'><h3>Global Inventory Index Catalog</h3>");
-                html.append("<div class='search-container'>");
-                html.append("<input type='text' id='searchInput' class='search-input' placeholder='Type title keyword to filter index list directly...' value='").append(searchQuery).append("'/>");
-                html.append("<button class='btn' onclick='runSearch()'>Search Catalog</button>");
                 html.append("</div>");
-                html.append("<script>function runSearch(){ var val = document.getElementById('searchInput').value; window.location.href = '/?search=' + encodeURIComponent(val); }</script>");
 
-                html.append("<table><tr><th>Asset ID</th><th>Resource Title</th><th>Status</th><th>Operations</th></tr>");
-                String selectQuery = "SELECT * FROM books ORDER BY id ASC";
-                if (!searchQuery.isEmpty()) {
-                    selectQuery = "SELECT * FROM books WHERE title LIKE ? ORDER BY id ASC";
-                }
+                if (activeTab.equals("books")) {
+                    html.append("<div class='card'><h3>🔍 Catalogue Master Index Filtering Engine</h3>");
+                    html.append("<div style='display:flex; gap:10px; margin-bottom:20px;'>");
+                    html.append("<input type='text' id='localSearchInput' style='padding:12px; width:75%; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);' placeholder='Filter story entries, asset codes, content variables natively...' value='").append(localSearchQuery).append("'/>");
+                    html.append("<button class='btn' onclick='runLocalSearch()'>Execute Query</button>");
+                    html.append("</div>");
+                    html.append("<script>function runLocalSearch(){ var val=document.getElementById('localSearchInput').value; window.location.href='/?tab=books&search='+encodeURIComponent(val); }</script>");
 
-                Set<Integer> favoritedIds = new HashSet<>();
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (PreparedStatement ps = conn.prepareStatement("SELECT book_id FROM favorites WHERE username=?")) {
-                        ps.setString(1, sessionUser.trim());
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) favoritedIds.add(rs.getInt("book_id"));
+                    html.append("<div class='wattpad-shelf'>");
+
+                    try {
+                        Connection conn = ensureDatabaseConnected();
+                        String baseSql = "SELECT b.*, (SELECT COUNT(*) FROM favorites WHERE book_id=b.id) as fav_count, " +
+                                         "(SELECT COUNT(*) FROM activity_logs WHERE action_type='Borrowed Book' AND details LIKE CONCAT('%', b.id, '%')) as borrow_count " +
+                                         "FROM books b";
+                        if (!localSearchQuery.isEmpty()) {
+                            baseSql += " WHERE b.title LIKE ?";
                         }
-                    }
-                } catch (Exception e) {}
+                        baseSql += " ORDER BY b.id ASC";
 
-                try {
-                    Connection conn = ensureDatabaseConnected();
-                    try (PreparedStatement searchPs = conn.prepareStatement(selectQuery)) {
-                        if (!searchQuery.isEmpty()) {
-                            searchPs.setString(1, "%" + searchQuery + "%");
-                        }
-                        try (ResultSet rs = searchPs.executeQuery()) {
-                            while (rs.next()) {
-                                int id = rs.getInt("id");
-                                String title = rs.getString("title");
-                                String status = rs.getString("status");
+                        try (PreparedStatement ps = conn.prepareStatement(baseSql)) {
+                            if (!localSearchQuery.isEmpty()) ps.setString(1, "%" + localSearchQuery + "%");
+                            try (ResultSet rs = ps.executeQuery()) {
+                                while (rs.next()) {
+                                    int bid = rs.getInt("id");
+                                    String title = rs.getString("title");
+                                    String status = rs.getString("status");
+                                    int chapters = rs.getInt("chapters");
+                                    int readTime = rs.getInt("read_time_mins");
+                                    int favoritesCount = rs.getInt("fav_count");
+                                    int borrowCount = rs.getInt("borrow_count");
 
-                                html.append("<tr><td>").append(id).append("</td>");
-                                html.append("<td>").append(title).append("</td>");
-                                html.append("<td>").append("Available".equals(status) ? "Available" : "<span class='badge-borrowed'>Borrowed Out</span>").append("</td>");
-                                html.append("<td><div style='display:flex; gap:5px;'>");
+                                    html.append("<div class='book-card'>");
+                                    html.append("<h4 style='margin:0 0 5px 0; font-size:18px;'>").append(title).append("</h4>");
+                                    html.append("<p style='font-size:11px; color:gray; margin:0;'>Resource ID: ").append(bid).append("</p>");
 
-                                if ("Available".equals(status)) {
-                                    html.append("<form action='/borrow' method='POST' style='margin:0;'>");
-                                    html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
-                                    html.append("<button type='submit' class='btn btn-action'>Borrow</button>");
-                                    html.append("</form>");
-                                } else {
-                                    html.append("<button class='btn btn-action btn-disabled' disabled>Unavailable</button>");
+                                    html.append("<div class='book-meta'>");
+                                    html.append("<span>📚 ").append(chapters).append(" Chapters</span>");
+                                    html.append("<span>⏱️ ").append(readTime).append(" mins read</span>");
+                                    html.append("</div>");
+
+                                    html.append("<div class='book-meta' style='margin-top:-5px;'>");
+                                    html.append("<span>⭐ Favorites: <b class='metric-badge'>").append(favoritesCount).append(" users</b></span>");
+                                    html.append("<span>📖 Checkouts: <b class='metric-badge' style='color:#005abe; background:rgba(0,90,190,0.1);'>").append(borrowCount).append(" times</b></span>");
+                                    html.append("</div>");
+
+                                    html.append("<p style='font-size:13px;'>Availability Status: ").append("Available".equals(status)?"<b style='color:#22c55e;'>Live Registry</b>":"<b style='color:#ef4444;'>Checked Out</b>").append("</p>");
+
+                                    html.append("<div style='display:flex; gap:8px; margin-top:15px;'>");
+                                    html.append("<button class='btn' style='background:#6366f1;' onclick=\"openStoryReader('").append(title.replace("'", "\\'")).append("')\">👁️ Read Story</button>");
+
+                                    if ("Available".equals(status)) {
+                                        html.append("<form action='/borrow' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn'>Borrow</button></form>");
+                                    } else if (sessionUser.equals(rs.getString("borrower"))) {
+                                        html.append("<form action='/return' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn btn-secondary'>Return</button></form>");
+                                    }
+
+                                    html.append("<form action='/addFavorite' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn btn-secondary' style='background:#eab308;'>⭐ Pin</button></form>");
+
+                                    if ("admin".equals(sessionUser)) {
+                                        html.append("<form action='/deleteBook' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn' style='background:#ef4444;'>Wipe</button></form>");
+                                    }
+                                    html.append("</div>");
+
+                                    // Display social review comments interface engine
+                                    html.append("<div class='comment-section'><h5>Reader Community Feed Insights</h5>");
+                                    try (PreparedStatement commPs = conn.prepareStatement("SELECT * FROM comments WHERE book_id=? ORDER BY id ASC")) {
+                                        commPs.setInt(1, bid);
+                                        try (ResultSet commRs = commPs.executeQuery()) {
+                                            while (commRs.next()) {
+                                                html.append("<p style='font-size:12px; margin:4px 0;'><b>").append(commRs.getString("username")).append("</b>: ").append(commRs.getString("comment_text")).append(" <i style='font-size:10px; color:gray;'>").append(commRs.getString("timestamp")).append("</i></p>");
+                                            }
+                                        }
+                                    }
+                                    html.append("<form action='/addComment' method='POST' style='margin-top:8px;'>");
+                                    html.append("<input type='hidden' name='bookId' value='").append(bid).append("'/>");
+                                    html.append("<input type='text' name='commentText' class='comment-input' placeholder='Post an inline reaction analysis review...' required/>");
+                                    html.append("<button type='submit' class='btn' style='padding:4px 10px; font-size:11px; margin-left:4px;'>Review</button>");
+                                    html.append("</form></div>");
+
+                                    html.append("</div>");
                                 }
-
-                                if (favoritedIds.contains(id)) {
-                                    html.append("<form action='/removeFavorite' method='POST' style='margin:0;'>");
-                                    html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
-                                    html.append("<button type='submit' class='btn btn-action btn-fav-remove'>★ Unfav</button>");
-                                    html.append("</form>");
-                                } else {
-                                    html.append("<form action='/addFavorite' method='POST' style='margin:0;'>");
-                                    html.append("<input type='hidden' name='assetId' value='").append(id).append("'/>");
-                                    html.append("<button type='submit' class='btn btn-action btn-fav'>⭐ Favorite</button>");
-                                    html.append("</form>");
-                                }
-                                html.append("</div></td></tr>");
                             }
                         }
+                    } catch (Exception e) {}
+
+                    html.append("</div></div>");
+                }
+                else if (activeTab.equals("logs")) {
+                    html.append("<div class='card'><h3>📑 Live Pipeline Event Tracking Log Logs</h3>");
+                    html.append("<table><thead><tr><th>System Log Time</th><th>Account Node</th><th>Action Class</th><th>Log Statement Manifest</th></tr></thead><tbody>");
+                    try {
+                        Connection conn = ensureDatabaseConnected();
+                        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 40")) {
+                            while (rs.next()) {
+                                html.append("<tr><td style='color:gray; font-size:12px;'>").append(rs.getString("timestamp")).append("</td>");
+                                html.append("<td><b>").append(rs.getString("username")).append("</b></td>");
+                                html.append("<td><span style='background:#ff4500; color:white; padding:2px 6px; font-size:11px; border-radius:4px;'>").append(rs.getString("action_type")).append("</span></td>");
+                                html.append("<td>").append(rs.getString("details")).append("</td></tr>");
+                            }
+                        }
+                    } catch (Exception e) {}
+                    html.append("</tbody></table></div>");
+                }
+                else if (activeTab.equals("api")) {
+                    html.append("<div class='card'><h3>🌐 Open Library JSON API Proxy Connection Portal</h3>");
+                    html.append("<p style='font-size:13px; color:gray;'>Query metadata variables directly from external global open library registries and map records straight into local databases dynamically.</p>");
+                    html.append("<div style='display:flex; gap:10px; margin-bottom:25px;'>");
+                    html.append("<input type='text' id='apiSearchInput' style='padding:12px; width:75%; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);' placeholder='Query title fields global network registry space (e.g., Lord of the Rings)...' value='").append(apiSearchQuery).append("'/>");
+                    html.append("<button class='btn' style='background:#0284c7;' onclick='runApiSearch()'>Execute Global Scan</button>");
+                    html.append("</div>");
+                    html.append("<script>function runApiSearch(){ var val=document.getElementById('apiSearchInput').value; window.location.href='/?tab=api&apiSearch='+encodeURIComponent(val); }</script>");
+
+                    if (!apiSearchQuery.isEmpty()) {
+                        html.append("<h4>Remote Cloud API Payload Results</h4><div style='display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px;'>");
+                        String jsonResponse = fetchOpenLibraryBooksJSON(apiSearchQuery);
+                        if (!jsonResponse.isEmpty() && jsonResponse.contains("\"title\"")) {
+                            int pointer = 0;
+                            for (int k = 0; k < 3; k++) {
+                                pointer = jsonResponse.indexOf("\"title\"", pointer);
+                                if (pointer == -1) break;
+                                int start = jsonResponse.indexOf(":", pointer) + 1;
+                                while(jsonResponse.charAt(start) == ' ' || jsonResponse.charAt(start) == '"') start++;
+                                int end = jsonResponse.indexOf("\"", start);
+                                if (end == -1) break;
+                                String cloudTitle = jsonResponse.substring(start, end);
+                                pointer = end;
+
+                                html.append("<div class='book-card' style='border:1px dashed #0284c7;'>");
+                                html.append("<h5>").append(cloudTitle).append("</h5>");
+                                html.append("<p style='font-size:11px; color:gray;'>Source Validation Context: Open Library API Cloud Metadata Record</p>");
+                                if ("admin".equals(sessionUser)) {
+                                    html.append("<form action='/importApiBook' method='POST'>");
+                                    html.append("<input type='hidden' name='title' value='").append(cloudTitle.replace("'", "")).append("'/>");
+                                    html.append("<button type='submit' class='btn' style='background:#0284c7; width:100%;'>Sync Dynamic Import</button>");
+                                    html.append("</form>");
+                                } else {
+                                    html.append("<p style='font-size:11px; color:red;'>Administrator clearing token authority needed to synchronize database.</p>");
+                                }
+                                html.append("</div>");
+                            }
+                        } else {
+                            html.append("<p style='color:gray;'>No data items returned inside cloud streaming array.</p>");
+                        }
+                        html.append("</div>");
                     }
-                } catch (Exception e) {}
-                html.append("</table></div></div>");
+                    html.append("</div>");
+                }
+                else if (activeTab.equals("add") && "admin".equals(sessionUser)) {
+                    html.append("<div class='card'><h3>➕ Admin Management - Provision New Asset Records</h3>");
+                    html.append("<form action='/addBook' method='POST' style='display:flex; flex-direction:column; gap:12px; max-width:400px;'>");
+                    html.append("<label style='font-size:12px; font-weight:600;'>Book Resource Title Name:</label>");
+                    html.append("<input type='text' name='title' style='padding:10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);' placeholder='Insert title string entry...' required autocomplete='off'/>");
+                    html.append("<button type='submit' class='btn'>Commit Node to DB Catalog</button>");
+                    html.append("</form></div>");
+                }
+
+                html.append("</div>"); // wrapper end
             }
+
+            // High Fidelity Wattpad-Style Inline Content Reader Layer Frame
+            html.append("<div id='readerPopup' class='reader-overlay' onclick='closeStoryReader()'>");
+            html.append("<div class='reader-box' onclick='event.stopPropagation()'>");
+            html.append("<h2 id='storyTitle' style='color:#111; font-family:serif; text-align:center; border-bottom:1px solid #ddd; padding-bottom:15px;'></h2>");
+            html.append("<p style='margin-top:20px;'><b>Chapter 1: The Incarnation of Destiny Manifested</b></p>");
+            html.append("<p>The storm howled against the towering glass structures of the metropolitan financial district. Inside the executive penthouse suite, the air was dense, filled with unuttered expectations. The data matrices flickered in amber patterns across monitors, signaling a cascading shift across international network frameworks.</p>");
+            html.append("<p>He turned around slowly, his piercing gray eyes cutting through the darkness of the dimly lit room. \"We are missing a core synchronization segment,\" he whispered, his voice smooth yet commanding. Everything hung in a delicate balance, awaiting the arrival of the final encryption sequence...</p>");
+            html.append("<p style='text-align:center; color:gray; font-size:14px; margin-top:40px;'>[End of Preview Segment. Click outside to return to catalogue shelf]</p>");
+            html.append("</div></div>");
 
             html.append("</body></html>");
             byte[] responseBytes = html.toString().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, responseBytes.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(responseBytes);
-            }
+            try (OutputStream os = exchange.getResponseBody()) { os.write(responseBytes); }
         }
 
         private void displayValidationError(HttpExchange exchange, String errorMessage) throws IOException {
             StringBuilder html = new StringBuilder();
-            html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Validation Error</title>");
+            html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Validation Exception Exception</title>");
             html.append("<style>body{font-family:'Segoe UI',sans-serif; background-color:#f4f7f9; text-align:center; padding-top:100px;}");
-            html.append(".error-box{max-width:500px; margin:0 auto; background:white; padding:40px; border-radius:8px; border-top:5px solid #ef4444; box-shadow:0 4px 10px rgba(0,0,0,0.05);}");
-            html.append(".btn{background-color:#005abe; color:white; padding:10px 20px; border:none; border-radius:4px; text-decoration:none; font-weight:600; cursor:pointer;}");
-            html.append("</style></head><body><div class='error-box'>");
-            html.append("<h2 style='color:#ef4444;'>Validation Error</h2>");
-            html.append("<p style='color:#475569; margin-bottom:25px; line-height:1.5;'>").append(errorMessage).append("</p>");
-            html.append("<a href='/' class='btn'>Return to Sign In</a>");
-            html.append("</div></body></html>");
-
+            html.append(".error-box{max-width:500px; margin:0 auto; background:white; padding:40px; border-radius:12px; border-top:5px solid #ef4444; box-shadow:0 4px 15px rgba(0,0,0,0.05);}");
+            html.append(".btn{background-color:#ff4500; color:white; padding:10px 20px; border:none; border-radius:30px; text-decoration:none; font-weight:600; cursor:pointer;}</style></head>");
+            html.append("<body><div class='error-box'><h3 style='color:#ef4444;'>Validation Constraint Warning</h3>");
+            html.append("<p style='color:#4a5568; margin-bottom:25px;'>").append(errorMessage).append("</p>");
+            html.append("<a href='/' class='btn'>Return to Main Application Hub</a></div></body></html>");
             byte[] responseBytes = html.toString().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, responseBytes.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(responseBytes);
-            }
+            try (OutputStream os = exchange.getResponseBody()) { os.write(responseBytes); }
         }
 
         private Map<String, String> parseFormBody(HttpExchange exchange) throws IOException {
             Map<String, String> result = new HashMap<>();
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) return result;
-            
             InputStream is = exchange.getRequestBody();
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
             int len;
-            while ((len = is.read(buffer)) != -1) {
-                bos.write(buffer, 0, len);
-            }
+            while ((len = is.read(buffer)) != -1) bos.write(buffer, 0, len);
             String formText = bos.toString(StandardCharsets.UTF_8.name());
             if (formText.isEmpty()) return result;
-            
             String[] pairs = formText.split("&");
             for (String pair : pairs) {
                 String[] idx = pair.split("=");
                 if (idx.length == 2) {
-                    String key = URLDecoder.decode(idx[0], StandardCharsets.UTF_8.name());
-                    String val = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name());
-                    result.put(key, val);
+                    result.put(URLDecoder.decode(idx[0], StandardCharsets.UTF_8.name()), URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()));
                 }
             }
             return result;
