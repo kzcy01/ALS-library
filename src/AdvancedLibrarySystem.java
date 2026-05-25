@@ -104,13 +104,6 @@ public class AdvancedLibrarySystem {
                         "details VARCHAR(255), " +
                         "timestamp VARCHAR(50));");
 
-                st.execute("CREATE TABLE IF NOT EXISTS comments (" +
-                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                        "book_id INT, " +
-                        "username VARCHAR(100), " +
-                        "comment_text TEXT, " +
-                        "timestamp VARCHAR(50));");
-
                 logSystemEvent("Institutional database structure verified successfully.");
             }
         } catch (Exception e) {
@@ -148,7 +141,6 @@ public class AdvancedLibrarySystem {
                 ps.executeUpdate();
             }
 
-            // Overhaul and clear older book records to populate fresh dataset instances
             try (Statement st = conn.createStatement()) {
                 st.execute("TRUNCATE TABLE books;");
 
@@ -363,22 +355,6 @@ public class AdvancedLibrarySystem {
                         redirect(exchange, "/");
                         return;
                     }
-                    else if ("/addComment".equals(path)) {
-                        String bid = params.get("bookId");
-                        String text = params.getOrDefault("commentText", "").trim();
-                        if (sessionUser != null && bid != null && !text.isEmpty()) {
-                            String time = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date());
-                            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO comments (book_id, username, comment_text, timestamp) VALUES (?, ?, ?, ?)")) {
-                                ps.setInt(1, Integer.parseInt(bid));
-                                ps.setString(2, sessionUser);
-                                ps.setString(3, text);
-                                ps.setString(4, time);
-                                ps.executeUpdate();
-                            }
-                        }
-                        redirect(exchange, "/?tab=books");
-                        return;
-                    }
                     else if ("/importApiBook".equals(path)) {
                         String title = params.getOrDefault("title", "Unknown Scholarly Work").trim();
                         if ("admin".equals(sessionUser)) {
@@ -440,8 +416,6 @@ public class AdvancedLibrarySystem {
             html.append(".metric-box { background: rgba(30, 64, 175, 0.08); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size:11px; }");
             html.append(".login-container { width:380px; margin:140px auto; background: var(--card-bg); padding:35px; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); }");
             html.append(".login-container input { width:100%; padding:10px; margin:10px 0 16px 0; border:1px solid var(--border); border-radius:4px; box-sizing:border-box; background: var(--bg); color: var(--text); }");
-            html.append(".comment-section { margin-top:16px; background: rgba(0,0,0,0.01); padding:15px; border-radius:4px; border: 1px solid var(--border); }");
-            html.append(".comment-input { width:80%; padding:8px; border-radius:4px; border:1px solid var(--border); background: var(--bg); color: var(--text); }");
             html.append(".drawer-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:1000; justify-content:center; align-items:center; backdrop-filter: blur(2px); }");
             html.append(".drawer-box { background: var(--card-bg); color: var(--text); width:640px; padding:35px; border-radius:6px; border:1px solid var(--border); position:relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }");
             html.append(".filter-bar { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 4px; border: 1px solid var(--border); }");
@@ -469,14 +443,14 @@ public class AdvancedLibrarySystem {
             else {
                 String activeTab = "books";
                 if (query != null && query.contains("tab=")) {
-                    if (query.contains("tab=logs")) activeTab = "logs";
+                    if (query.contains("tab=logs") && "admin".equals(sessionUser)) activeTab = "logs";
                     else if (query.contains("tab=api")) activeTab = "api";
-                    else if (query.contains("tab=add")) activeTab = "add";
+                    else if (query.contains("tab=add") && "admin".equals(sessionUser)) activeTab = "add";
                 }
 
-                html.append("<div class='navbar'><h2>🏫 Institutional Reference & Information Suite <sub>Portal Node Architecture</sub></h2>");
+                html.append("<div class='navbar'><h2>Institutional Reference & Information Suite Sub-System Portal Node Architecture</h2>");
                 html.append("<div style='display:flex; gap:12px; align-items:center;'>");
-                html.append("<button class='btn btn-secondary' onclick='toggleDarkMode()' style='padding:6px 12px; font-size:12px;'>🌗 UI Theme</button>");
+                html.append("<button class='btn btn-secondary' onclick='toggleDarkMode()' style='padding:6px 12px; font-size:12px;'>UI Theme</button>");
                 html.append("<span style='font-size:13px; color:#94a3b8; font-weight:500;'>Operator Account: <b>").append(sessionUser).append("</b></span>");
                 html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn' style='background:#ef4444; padding:6px 12px; font-size:12px;'>Terminate Session</button></form>");
                 html.append("</div></div>");
@@ -484,12 +458,12 @@ public class AdvancedLibrarySystem {
                 html.append("<div class='wrapper'>");
 
                 html.append("<div class='tabs-header'>");
-                html.append("<a class='tab-link ").append(activeTab.equals("books")?"active":"").append("' href='/?tab=books'>📁 Academic Categorized Index</a>");
-                html.append("<a class='tab-link ").append(activeTab.equals("logs")?"active":"").append("' href='/?tab=logs'>📑 Pipeline Audit Trails</a>");
-                html.append("<a class='tab-link ").append(activeTab.equals("api")?"active":"").append("' href='/?tab=api'>🌐 Open Library Cross-Reference</a>");
+                html.append("<a class='tab-link ").append(activeTab.equals("books")?"active":"").append("' href='/?tab=books'>Academic Categorized Index</a>");
                 if ("admin".equals(sessionUser)) {
-                    html.append("<a class='tab-link ").append(activeTab.equals("add")?"active":"").append("' href='/?tab=add'>⚙️ System Provisioning Workspace</a>");
+                    html.append("<a class='tab-link ").append(activeTab.equals("logs")?"active":"").append("' href='/?tab=logs'>Pipeline Audit Trails</a>");
+                    html.append("<a class='tab-link ").append(activeTab.equals("add")?"active":"").append("' href='/?tab=add'>System Provisioning Workspace</a>");
                 }
+                html.append("<a class='tab-link ").append(activeTab.equals("api")?"active":"").append("' href='/?tab=api'>Open Library Cross-Reference</a>");
                 html.append("</div>");
 
                 if (activeTab.equals("books")) {
@@ -533,7 +507,7 @@ public class AdvancedLibrarySystem {
 
                                     while (rs.next()) {
                                         if (!sectionHeaderPrinted) {
-                                            html.append("<div class='category-header'>📁 ").append(domainCategory).append("</div>");
+                                            html.append("<div class='category-header'>Category: ").append(domainCategory).append("</div>");
                                             html.append("<div class='catalog-grid'>");
                                             sectionHeaderPrinted = true;
                                         }
@@ -551,15 +525,15 @@ public class AdvancedLibrarySystem {
                                         html.append("<p style='font-size:11px; color:#64748b; margin:0;'>Global Catalog Control Reference Registry: System-ID #").append(bid).append("</p></div>");
 
                                         html.append("<div class='meta-container'>");
-                                        html.append("<span>📑 Content Parts: ").append(chapters).append(" Sections</span>");
-                                        html.append("<span>⏳ Processing Work-Time: ").append(readTime).append(" Mins</span>");
-                                        html.append("<span>✨ Institutional Favorites: <b class='metric-box'>").append(favoritesCount).append(" Profiles</b></span>");
-                                        html.append("<span>📊 Total Historical Access: <b class='metric-box' style='color:#10b981; background:rgba(16,185,129,0.08);'>").append(borrowCount).append(" Checkouts</b></span>");
+                                        html.append("<span>Content Parts: ").append(chapters).append(" Sections</span>");
+                                        html.append("<span>Processing Work-Time: ").append(readTime).append(" Mins</span>");
+                                        html.append("<span>Institutional Favorites: <b class='metric-box'>").append(favoritesCount).append(" Profiles</b></span>");
+                                        html.append("<span>Total Historical Access: <b class='metric-box' style='color:#10b981; background:rgba(16,185,129,0.08);'>").append(borrowCount).append(" Checkouts</b></span>");
                                         html.append("<span>Status: ").append("Available".equals(status)?"<span style='color:#22c55e; font-weight:600;'>In Inventory</span>":"<span style='color:#ef4444; font-weight:600;'>Leased Out</span>").append("</span>");
                                         html.append("</div>");
 
                                         html.append("<div style='display:flex; gap:8px; margin-top:5px;'>");
-                                        html.append("<button class='btn btn-secondary' onclick=\"viewAbstract('").append(title.replace("'", "\\'")).append("', '").append(domainCategory.replace("'", "\\'")).append("')\">📑 View Abstract / Metadata</button>");
+                                        html.append("<button class='btn btn-secondary' onclick=\"viewAbstract('").append(title.replace("'", "\\'")).append("', '").append(domainCategory.replace("'", "\\'")).append("')\">View Abstract / Metadata</button>");
 
                                         if ("Available".equals(status)) {
                                             html.append("<form action='/borrow' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn'>Request Allocation</button></form>");
@@ -567,28 +541,12 @@ public class AdvancedLibrarySystem {
                                             html.append("<form action='/return' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn btn-secondary'>Relinquish Allocation</button></form>");
                                         }
 
-                                        html.append("<form action='/addFavorite' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn btn-secondary' style='color:var(--accent);'>⭐ Bookmark Entry</button></form>");
+                                        html.append("<form action='/addFavorite' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn btn-secondary' style='color:var(--accent);'>Bookmark Entry</button></form>");
 
                                         if ("admin".equals(sessionUser)) {
                                             html.append("<form action='/deleteBook' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn' style='background:#ef4444;'>Purge Record</button></form>");
                                         }
                                         html.append("</div>");
-
-                                        html.append("<div class='comment-section'><h5 style='margin:0 0 10px 0; font-size:12px; text-transform:uppercase; color:#64748b;'>Academic Annotations & Peer Commentary</h5>");
-                                        try (PreparedStatement commPs = conn.prepareStatement("SELECT * FROM comments WHERE book_id=? ORDER BY id ASC")) {
-                                            commPs.setInt(1, bid);
-                                            try (ResultSet commRs = commPs.executeQuery()) {
-                                                while (commRs.next()) {
-                                                    html.append("<p style='font-size:12px; margin:4px 0;'><b>Researcher [").append(commRs.getString("username")).append("]</b>: ").append(commRs.getString("comment_text")).append(" <i style='font-size:10px; color:#94a3b8;'>(").append(commRs.getString("timestamp")).append(")</i></p>");
-                                                }
-                                            }
-                                        }
-                                        html.append("<form action='/addComment' method='POST' style='margin-top:10px; display:flex; gap:6px;'>");
-                                        html.append("<input type='hidden' name='bookId' value='").append(bid).append("'/>");
-                                        html.append("<input type='text' name='commentText' class='comment-input' placeholder='Append formal textual observation notes to this reference item...' required/>");
-                                        html.append("<button type='submit' class='btn' style='font-size:11px; padding:6px 12px;'>Commit Note</button>");
-                                        html.append("</form></div>");
-
                                         html.append("</div>");
                                     }
 
@@ -604,10 +562,9 @@ public class AdvancedLibrarySystem {
 
                     html.append("</div>");
                 }
-                else if (activeTab.equals("logs")) {
-                    html.append("<div class='card'><h3>📑 System Pipeline Audit Trail Logs</h3>");
+                else if (activeTab.equals("logs") && "admin".equals(sessionUser)) {
+                    html.append("<div class='card'><h3>System Pipeline Audit Trail Logs</h3>");
 
-                    // High-Fidelity Filtering Control Interface Dropdown
                     html.append("<div class='filter-bar'>");
                     html.append("<span style='font-size:12px; font-weight:600; color:#475569;'>Filter Audit Scope:</span>");
                     html.append("<select onchange='filterLogs(this.value)' style='padding:6px 12px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); font-size:13px;'>");
@@ -644,7 +601,7 @@ public class AdvancedLibrarySystem {
                     html.append("</tbody></table></div>");
                 }
                 else if (activeTab.equals("api")) {
-                    html.append("<div class='card'><h3>🌐 Open Library Academic Index Query Gateway</h3>");
+                    html.append("<div class='card'><h3>Open Library Academic Index Query Gateway</h3>");
                     html.append("<p style='font-size:13px; color:#64748b; margin-top:-5px;'>Query cross-network external dataset clusters via Open Library JSON streams API structures.</p>");
                     html.append("<div style='display:flex; gap:10px; margin-bottom:25px;'>");
                     html.append("<input type='text' id='apiSearchInput' style='padding:10px; width:80%; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text);' placeholder='Search titles globally across network indexes (e.g., Quantum Physics)...' value='").append(apiSearchQuery).append("'/>");
@@ -688,7 +645,7 @@ public class AdvancedLibrarySystem {
                     html.append("</div>");
                 }
                 else if (activeTab.equals("add") && "admin".equals(sessionUser)) {
-                    html.append("<div class='card'><h3>⚙️ Administrative Provisioning Workspace</h3>");
+                    html.append("<div class='card'><h3>Administrative Provisioning Workspace</h3>");
                     html.append("<form action='/addBook' method='POST' style='display:flex; flex-direction:column; gap:12px; max-width:450px;'>");
                     html.append("<label style='font-size:12px; font-weight:600;'>Resource Title Descriptor Name:</label>");
                     html.append("<input type='text' name='title' style='padding:10px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);' placeholder='e.g., Introduction to Neural Network Topology Frameworks' required autocomplete='off'/>");
@@ -708,7 +665,6 @@ public class AdvancedLibrarySystem {
                 html.append("</div>");
             }
 
-            // High Fidelity Institutional Preview Abstract Overlay Layer (Only displays short abstract overview, never full publication texts)
             html.append("<div id='abstractDrawer' class='drawer-overlay' onclick='closeAbstract()'>");
             html.append("<div class='drawer-box' onclick='event.stopPropagation()'>");
             html.append("<h3 id='drawerTitle' style='margin-top:0; border-bottom:1px solid var(--border); padding-bottom:12px; font-weight:600; font-size:18px; color:var(--accent);'></h3>");
