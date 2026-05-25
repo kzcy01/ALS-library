@@ -78,6 +78,17 @@ public class AdvancedLibrarySystem extends JFrame {
     private static final int DEFAULT_PORT = 8080;
     private HttpServer server;
 
+    // --- DYNAMIC DATABASE STORAGE PATH CONFIGURATOR ---
+    private static final String BASE_DATA_PATH;
+    static {
+        // If running on Railway with a persistent volume mounted, write directly to the persistent disk path
+        if (System.getenv("RAILWAY_VOLUME_MOUNT_PATH") != null) {
+            BASE_DATA_PATH = System.getenv("RAILWAY_VOLUME_MOUNT_PATH") + "/Data log/";
+        } else {
+            BASE_DATA_PATH = "Data log/";
+        }
+    }
+
     // --- UI DESIGN STYLING ARCHITECTURE ---
     private final Color COLOR_BG = Color.WHITE;
     private final Color COLOR_PRIMARY = new Color(0, 90, 180);
@@ -103,7 +114,6 @@ public class AdvancedLibrarySystem extends JFrame {
         seedDataInventory();
         startLocalhostWebServer();
 
-        // Only build and paint visual UI windows if running locally on desktop monitor systems
         if (System.getProperty("java.awt.headless") == null || !System.getProperty("java.awt.headless").equals("true")) {
             setupMainFrame();
         }
@@ -112,12 +122,9 @@ public class AdvancedLibrarySystem extends JFrame {
     }
 
     private void initializeDirectoryStructure() {
-        String[] paths = {
-            "Data log/logins", "Data log/borrowed", "Data log/returned",
-            "Data log/log out", "Data log/book added", "Data log/remove books"
-        };
-        for (String path : paths) {
-            File folder = new File(path);
+        String[] subFolders = {"logins", "borrowed", "returned", "log out", "book added", "remove books"};
+        for (String sub : subFolders) {
+            File folder = new File(BASE_DATA_PATH + sub);
             if (!folder.exists()) folder.mkdirs();
         }
     }
@@ -130,14 +137,13 @@ public class AdvancedLibrarySystem extends JFrame {
             globalActivityLogs.add(entry);
         }
 
-        try (FileWriter fw = new FileWriter("Data log/" + subFolder + "/audit.txt", true);
+        try (FileWriter fw = new FileWriter(BASE_DATA_PATH + subFolder + "/audit.txt", true);
              PrintWriter pw = new PrintWriter(fw)) {
             pw.println(entry);
         } catch (IOException e) {
-            System.err.println("Error writing to logs: " + e.getMessage());
+            System.err.println("Error writing to persistent storage logs: " + e.getMessage());
         }
 
-        // Bypasses desktop window repaint operations during cloud execution instances
         if (System.getProperty("java.awt.headless") == null || !System.getProperty("java.awt.headless").equals("true")) {
             SwingUtilities.invokeLater(() -> {
                 if (modelAdminLogs != null) {
@@ -149,6 +155,7 @@ public class AdvancedLibrarySystem extends JFrame {
 
     private void startLocalhostWebServer() {
         try {
+            // Railway auto-assigns the system port dynamically
             String portEnv = System.getenv("PORT");
             int port = (portEnv != null) ? Integer.parseInt(portEnv) : DEFAULT_PORT;
 
@@ -156,20 +163,18 @@ public class AdvancedLibrarySystem extends JFrame {
             server.createContext("/", new WebDashboardHandler());
             server.setExecutor(null);
             server.start();
-            System.out.println(">>> Interactive Cloud Network Engine live at structural gateway port: " + port);
+            System.out.println(">>> Dynamic Data Sync Network Engine live at Gateway Port: " + port);
         } catch (IOException e) {
             System.err.println("Failed to start web server: " + e.getMessage());
         }
     }
 
-    // Automatically schedules server restarts at 6:00 AM and 6:00 PM Philippine Time
     private void schedulePHTimeRestarts() {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         ZoneId phZone = ZoneId.of("Asia/Manila");
 
         Runnable restartTask = () -> {
-            System.out.println("[SYSTEM ALERT] Scheduled 6 AM/PM restart triggered. Cycling web server contexts...");
-            writeLog("logins", "SYSTEM NOTICE: Automated server cycle initiated.");
+            System.out.println("[SYSTEM ALERT] Dynamic cycle initiated...");
             if (server != null) {
                 server.stop(1);
                 startLocalhostWebServer();
@@ -654,7 +659,7 @@ public class AdvancedLibrarySystem extends JFrame {
         btnRegister.addActionListener(e -> {
             String uid = inputIdField.getText().trim();
             if (!STUDENT_ID_PATTERN.matcher(uid).matches() && !uid.equalsIgnoreCase("admin")) {
-                JOptionPane.showMessageDialog(this, "Invalid Format! Must use a hyphen: YYYY-XXXXXX (e.g., 2024-106559)", "Formatting Alert", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Invalid Format! Must use a hyphen: YYYY-XXXXXX", "Formatting Alert", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             if (users.containsKey(uid)) {
@@ -856,7 +861,7 @@ public class AdvancedLibrarySystem extends JFrame {
 
         JPanel panelLogs = new JPanel(new BorderLayout());
         panelLogs.setBackground(COLOR_BG);
-        modelAdminLogs = new DefaultTableModel(new String[]{"Live System Audit Trail Track Records (All Folders)"}, 0) {
+        modelAdminLogs = new DefaultTableModel(new String[]{"Live System Audit Trail Track Records"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         tableAdminLogs = new JTable(modelAdminLogs);
@@ -912,9 +917,6 @@ public class AdvancedLibrarySystem extends JFrame {
         loggedInUser = null;
 
         lblWelcomeStatus.setText("Session closed safely. Please log in.");
-        lblStudentHeader.setText("Digital Circulation Desk");
-        lblAdminHeader.setText("System Administrative Operations Dashboard");
-
         cardLayout.show(containerPanel, "ScreenLogin");
     }
 
@@ -965,43 +967,32 @@ public class AdvancedLibrarySystem extends JFrame {
     }
 
     private void seedDataInventory() {
-        users.put("admin", new User("admin", true));
+        if (users.isEmpty()) {
+            users.put("admin", new User("admin", true));
+        }
 
-        String[] sampleTitles = {
-            "The Great Gatsby", "To Kill a Mockingbird", "1984", "Pride and Prejudice", "The Catcher in the Rye",
-            "The Hobbit", "Fahrenheit 451", "Jane Eyre", "Animal Farm", "The Lord of the Rings",
-            "Brave New World", "Lord of the Flies", "The Grapes of Wrath", "Macbeth", "Hamlet",
-            "Romeo and Juliet", "Frankenstein", "The Odyssey", "A Tale of Two Cities", "Crime and Punishment",
-            "The Alchemist", "Catch-22", "Wuthering Heights", "The Picture of Dorian Gray", "Heart of Darkness",
-            "Moby-Dick", "The Scarlet Letter", "The Brothers Karamazov", "Don Quixote", "Les Misérables",
-            "Anna Karenina", "War and Peace", "The Iliad", "Slaughterhouse-Five", "One Hundred Years of Solitude",
-            "The Divine Comedy", "The Old Man and the Sea", "Of Mice and Men", "Dracula", "The Bell Jar",
-            "The Secret Garden", "Little Women", "The Count of Monte Cristo", "A Clockwork Orange", "The Metamorphosis",
-            "The Stranger", "Invisible Man", "Beloved", "The Handmaid's Tale", "Life of Pi"
-        };
-        for (int i = 0; i < sampleTitles.length; i++) {
-            books.add(new Book(1001 + i, sampleTitles[i]));
+        if (books.isEmpty()) {
+            String[] sampleTitles = {
+                "The Great Gatsby", "To Kill a Mockingbird", "1984", "Pride and Prejudice", "The Catcher in the Rye",
+                "The Hobbit", "Fahrenheit 451", "Jane Eyre", "Animal Farm", "The Lord of the Rings",
+                "Brave New World", "Lord of the Flies", "The Grapes of Wrath", "Macbeth", "Hamlet",
+                "Romeo and Juliet", "Frankenstein", "The Odyssey", "A Tale of Two Cities", "Crime and Punishment"
+            };
+            for (int i = 0; i < sampleTitles.length; i++) {
+                books.add(new Book(1001 + i, sampleTitles[i]));
+            }
         }
     }
 
     public static void main(String[] args) {
-        // Evaluate active environment profile context parameters
         boolean isCloudEnvironment = System.getenv("PORT") != null;
 
         if (isCloudEnvironment) {
             System.out.println("--- CLOUD ENVIRONMENT DETECTED ---");
-            System.out.println("Starting Headless Web Infrastructure Server Console...");
-
-            // Set the absolute runtime property constraint
             System.setProperty("java.awt.headless", "true");
-
-            // Fire up only the background web infrastructure server directly
             new AdvancedLibrarySystem();
         } else {
             System.out.println("--- LOCAL DESKTOP COMPUTER DETECTED ---");
-            System.out.println("Launching standard Desktop UI Management Window Console...");
-
-            // Initialize visual elements safely inside local UI thread monitors
             SwingUtilities.invokeLater(() -> new AdvancedLibrarySystem().setVisible(true));
         }
     }
