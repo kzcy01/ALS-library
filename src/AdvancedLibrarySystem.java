@@ -81,7 +81,6 @@ public class AdvancedLibrarySystem extends JFrame {
     // --- DYNAMIC DATABASE STORAGE PATH CONFIGURATOR ---
     private static final String BASE_DATA_PATH;
     static {
-        // If running on Railway with a persistent volume mounted, write directly to the persistent disk path
         if (System.getenv("RAILWAY_VOLUME_MOUNT_PATH") != null) {
             BASE_DATA_PATH = System.getenv("RAILWAY_VOLUME_MOUNT_PATH") + "/Data log/";
         } else {
@@ -114,7 +113,9 @@ public class AdvancedLibrarySystem extends JFrame {
         seedDataInventory();
         startLocalhostWebServer();
 
-        if (System.getProperty("java.awt.headless") == null || !System.getProperty("java.awt.headless").equals("true")) {
+        // Strictly prevent headless systems from executing user interface initializations
+        boolean isHeadless = "true".equals(System.getProperty("java.awt.headless"));
+        if (!isHeadless) {
             setupMainFrame();
         }
 
@@ -144,7 +145,8 @@ public class AdvancedLibrarySystem extends JFrame {
             System.err.println("Error writing to persistent storage logs: " + e.getMessage());
         }
 
-        if (System.getProperty("java.awt.headless") == null || !System.getProperty("java.awt.headless").equals("true")) {
+        boolean isHeadless = "true".equals(System.getProperty("java.awt.headless"));
+        if (!isHeadless) {
             SwingUtilities.invokeLater(() -> {
                 if (modelAdminLogs != null) {
                     refreshAdminTables();
@@ -155,7 +157,6 @@ public class AdvancedLibrarySystem extends JFrame {
 
     private void startLocalhostWebServer() {
         try {
-            // Railway auto-assigns the system port dynamically
             String portEnv = System.getenv("PORT");
             int port = (portEnv != null) ? Integer.parseInt(portEnv) : DEFAULT_PORT;
 
