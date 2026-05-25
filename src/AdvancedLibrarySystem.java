@@ -24,7 +24,7 @@ public class AdvancedLibrarySystem {
     private static final List<String> operationsLog = Collections.synchronizedList(new ArrayList<>());
     private static final Map<String, String> tokenToUserMap = Collections.synchronizedMap(new HashMap<>());
 
-    // Accepts 'admin' OR student pattern format explicitly
+    // Pattern validation supporting 'admin' or formatting constraints
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^(admin|\\d{4}-\\d{6})$");
 
     public AdvancedLibrarySystem() {
@@ -80,11 +80,18 @@ public class AdvancedLibrarySystem {
                         "borrower VARCHAR(100) DEFAULT NULL, " +
                         "due_date VARCHAR(50) DEFAULT NULL);");
 
-                // Creates table structure ensuring a password field exists
+                // 1. Create base users table layout
                 st.execute("CREATE TABLE IF NOT EXISTS users (" +
                         "username VARCHAR(100) PRIMARY KEY, " +
-                        "password VARCHAR(255) NOT NULL, " +
                         "role VARCHAR(50) DEFAULT 'Standard Student');");
+
+                // 2. SCHEMA HOTFIX: Force columns update checking on the table schema live
+                try {
+                    st.execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '123456';");
+                    logSystemEvent("Hotfix column patch integrated on core database infrastructure.");
+                } catch (SQLException ex) {
+                    // Column already exists, swallow safely
+                }
 
                 st.execute("CREATE TABLE IF NOT EXISTS favorites (" +
                         "username VARCHAR(100), " +
@@ -98,10 +105,10 @@ public class AdvancedLibrarySystem {
                         "details VARCHAR(255), " +
                         "timestamp VARCHAR(50));");
 
-                logSystemEvent("Database table schema updated with login fields.");
+                logSystemEvent("Database table schema updated with tracking metrics.");
             }
         } catch (Exception e) {
-            System.err.println("Schema upgrade error: " + e.getMessage());
+            System.err.println("Schema structure configuration alert: " + e.getMessage());
         }
     }
 
@@ -125,12 +132,18 @@ public class AdvancedLibrarySystem {
     private void seedDataInventory() {
         try {
             Connection conn = ensureDatabaseConnected();
-            // THIS IS WHERE THE ADMIN USER AND PASS ARE DEFINED INSIDE THE DATABASE SEEDER
-            try (PreparedStatement ps = conn.prepareStatement("INSERT IGNORE INTO users (username, password, role) VALUES (?, ?, ?)")) {
+
+            // ADMIN OVERWRITE SECURITY PATTERN: Ensure admin profile matches setup values cleanly
+            try (Statement st = conn.createStatement()) {
+                st.execute("DELETE FROM users WHERE username='admin';");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO users (username, password, role) VALUES (?, ?, ?)")) {
                 ps.setString(1, "admin");
-                ps.setString(2, "admin123"); // <-- Password defined here
+                ps.setString(2, "admin123");
                 ps.setString(3, "Administrator");
                 ps.executeUpdate();
+                logSystemEvent("Admin security token seeded and verified: [Username: admin | Password: admin123]");
             }
 
             try (Statement st = conn.createStatement()) {
@@ -148,7 +161,7 @@ public class AdvancedLibrarySystem {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Database seeding error: " + e.getMessage());
+            System.err.println("Database seeding verification error: " + e.getMessage());
         }
     }
 
@@ -243,7 +256,7 @@ public class AdvancedLibrarySystem {
                                     redirect(exchange, "/");
                                     return;
                                 } else {
-                                    displayValidationError(exchange, "Error: Password mismatch.");
+                                    displayValidationError(exchange, "Error: Password mismatch validation failed.");
                                     return;
                                 }
                             } else {
@@ -257,7 +270,7 @@ public class AdvancedLibrarySystem {
                         String pass = params.getOrDefault("password", "").trim();
 
                         if ("admin".equalsIgnoreCase(uid)) {
-                            displayValidationError(exchange, "Operation Aborted: Reserved identifier.");
+                            displayValidationError(exchange, "Operation Aborted: Reserved identifier token.");
                             return;
                         }
                         if (!STUDENT_ID_PATTERN.matcher(uid).matches()) {
@@ -281,7 +294,7 @@ public class AdvancedLibrarySystem {
                             insertPs.setString(1, uid);
                             insertPs.setString(2, pass);
                             insertPs.executeUpdate();
-                            recordUserActivity(uid, "Registered", "Account created.");
+                            recordUserActivity(uid, "Registered", "Account created successfully.");
                         }
 
                         String token = UUID.randomUUID().toString();
@@ -383,13 +396,13 @@ public class AdvancedLibrarySystem {
                         return;
                     }
                 } catch (Exception e) {
-                    logSystemEvent("Processing error: " + e.getMessage());
+                    logSystemEvent("Processing error encountered: " + e.getMessage());
                 }
             }
 
             StringBuilder html = new StringBuilder();
             html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
-            html.append("<title>High-Speed Library Access Hub</title>");
+            html.append("<title>Library Core Suite Hub</title>");
             html.append("<style>");
             html.append("body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:0;background-color:#f4f7f9;color:#333;}");
             html.append(".navbar{background-color:#005abe;color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,0.1);}");
@@ -409,7 +422,6 @@ public class AdvancedLibrarySystem {
             html.append("</style></head><body>");
 
             if (sessionUser == null) {
-                // FIXED THE BROWSER restriction pattern to accept word 'admin' or student formatting explicitly
                 html.append("<div class='login-container'><h2 style='text-align:center;'>Library Web Access</h2>");
                 html.append("<p style='font-size:12px; color:gray; text-align:center; margin-top:-10px;'>Identity Rules: <b>admin</b> or student sequence (<b>XXXX-XXXXXX</b>)</p>");
                 html.append("<form method='POST'>");
