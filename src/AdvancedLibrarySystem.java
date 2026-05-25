@@ -28,7 +28,7 @@ public class AdvancedLibrarySystem {
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^(admin|\\d{4}-\\d{6})$");
 
     public AdvancedLibrarySystem() {
-        logSystemEvent("Initializing Institutional Library Categorized Core Management Suite...");
+        logSystemEvent("Initializing ALS Online Categorized Core Management Suite...");
         try {
             ensureDatabaseConnected();
             initializeAndRepairDatabaseSchema();
@@ -104,7 +104,7 @@ public class AdvancedLibrarySystem {
                         "details VARCHAR(255), " +
                         "timestamp VARCHAR(50));");
 
-                logSystemEvent("Institutional database structure verified successfully.");
+                logSystemEvent("ALS Online institutional database structure verified successfully.");
             }
         } catch (Exception e) {
             System.err.println("Schema adjustment exception: " + e.getMessage());
@@ -163,7 +163,7 @@ public class AdvancedLibrarySystem {
 
     private void setupLocalDesktopFrame() {
         try {
-            mainFrame = new JFrame("Institutional Enterprise Core Gateway");
+            mainFrame = new JFrame("ALS Online Core Gateway");
             mainFrame.setSize(400, 200);
             mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             localModel = new DefaultTableModel(new String[]{"Service Engine Operational Diagnostics"}, 0);
@@ -183,7 +183,7 @@ public class AdvancedLibrarySystem {
             webServer.createContext("/", new ApplicationRouterHandler());
             webServer.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(15));
             webServer.start();
-            logSystemEvent("Institutional server listening on port: " + port);
+            logSystemEvent("ALS Online server listening on port: " + port);
         } catch (IOException e) {
             System.err.println("Web initialization error: " + e.getMessage());
         }
@@ -244,6 +244,7 @@ public class AdvancedLibrarySystem {
             String localSearchQuery = "";
             String apiSearchQuery = "";
             String logFilter = "all";
+            String categoryFilter = "all";
 
             if (query != null) {
                 String[] pairs = query.split("&");
@@ -256,6 +257,8 @@ public class AdvancedLibrarySystem {
                             apiSearchQuery = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
                         } else if (idx[0].equals("logFilter")) {
                             logFilter = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
+                        } else if (idx[0].equals("categoryFilter")) {
+                            categoryFilter = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
                         }
                     }
                 }
@@ -391,7 +394,7 @@ public class AdvancedLibrarySystem {
 
             StringBuilder html = new StringBuilder();
             html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
-            html.append("<title>Institutional Resource Catalog & Management Platform</title>");
+            html.append("<title>ALS Online</title>");
             html.append("<style>");
             html.append(":root { --bg: #f8fafc; --card-bg: #ffffff; --text: #0f172a; --primary: #0f172a; --nav-bg: #0f172a; --border: #cbd5e1; --accent: #1e40af; }");
             html.append("body.dark-mode { --bg: #090d16; --card-bg: #111827; --text: #f8fafc; --nav-bg: #030712; --border: #374151; --accent: #3b82f6; }");
@@ -418,7 +421,7 @@ public class AdvancedLibrarySystem {
             html.append(".login-container input { width:100%; padding:10px; margin:10px 0 16px 0; border:1px solid var(--border); border-radius:4px; box-sizing:border-box; background: var(--bg); color: var(--text); }");
             html.append(".drawer-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:1000; justify-content:center; align-items:center; backdrop-filter: blur(2px); }");
             html.append(".drawer-box { background: var(--card-bg); color: var(--text); width:640px; padding:35px; border-radius:6px; border:1px solid var(--border); position:relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }");
-            html.append(".filter-bar { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 4px; border: 1px solid var(--border); }");
+            html.append(".filter-bar { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 4px; border: 1px solid var(--border); }");
             html.append("</style>");
             html.append("<script>");
             html.append("function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }");
@@ -426,11 +429,18 @@ public class AdvancedLibrarySystem {
             html.append("function viewAbstract(title, cat) { document.getElementById('drawerTitle').innerText = title; document.getElementById('drawerCategory').innerText = 'Classification Department: ' + cat; document.getElementById('abstractDrawer').style.display='flex'; }");
             html.append("function closeAbstract() { document.getElementById('abstractDrawer').style.display='none'; }");
             html.append("function filterLogs(val) { window.location.href = '/?tab=logs&logFilter=' + val; }");
+
+            // Script to filter local search accompanied by selected category parameters
+            html.append("function runLocalSearch(){");
+            html.append("  var searchVal = document.getElementById('localSearchInput').value;");
+            html.append("  var catVal = document.getElementById('categorySelectMenu').value;");
+            html.append("  window.location.href = '/?tab=books&categoryFilter=' + encodeURIComponent(catVal) + '&search=' + encodeURIComponent(searchVal);");
+            html.append("}");
             html.append("</script>");
             html.append("</head><body onload='loadTheme()'>");
 
             if (sessionUser == null) {
-                html.append("<div class='login-container'><h3 style='margin-top:0; text-align:center; font-weight:600;'>Institutional Access Portal</h3>");
+                html.append("<div class='login-container'><h3 style='margin-top:0; text-align:center; font-weight:600;'>ALS Online Access Portal</h3>");
                 html.append("<form method='POST'>");
                 html.append("<label style='font-size:12px; font-weight:500; color:#64748b;'>Institutional Identity Token:</label>");
                 html.append("<input type='text' name='userId' placeholder='e.g., admin or 2026-123456' required pattern='admin|\\d{4}-\\d{6}'/>");
@@ -448,10 +458,11 @@ public class AdvancedLibrarySystem {
                     else if (query.contains("tab=add") && "admin".equals(sessionUser)) activeTab = "add";
                 }
 
-                html.append("<div class='navbar'><h2>Institutional Reference & Information Suite Sub-System Portal Node Architecture</h2>");
-                html.append("<div style='display:flex; gap:12px; align-items:center;'>");
+                // Header section featuring the greeting logic block
+                html.append("<div class='navbar'><h2>ALS Online Core Portal Node Architecture</h2>");
+                html.append("<div style='display:flex; gap:16px; align-items:center;'>");
                 html.append("<button class='btn btn-secondary' onclick='toggleDarkMode()' style='padding:6px 12px; font-size:12px;'>UI Theme</button>");
-                html.append("<span style='font-size:13px; color:#94a3b8; font-weight:500;'>Operator Account: <b>").append(sessionUser).append("</b></span>");
+                html.append("<span style='font-size:13px; color:#ffffff; font-weight:500;'>Hello, <b>").append(sessionUser).append("</b></span>");
                 html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn' style='background:#ef4444; padding:6px 12px; font-size:12px;'>Terminate Session</button></form>");
                 html.append("</div></div>");
 
@@ -468,11 +479,6 @@ public class AdvancedLibrarySystem {
 
                 if (activeTab.equals("books")) {
                     html.append("<div class='card'><h3>Search Local Catalog Inventories</h3>");
-                    html.append("<div style='display:flex; gap:10px; margin-bottom:20px;'>");
-                    html.append("<input type='text' id='localSearchInput' style='padding:10px; width:80%; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text);' placeholder='Query title keywords, publication tags, schema values...' value='").append(localSearchQuery).append("'/>");
-                    html.append("<button class='btn' onclick='runLocalSearch()'>Query Index</button>");
-                    html.append("</div>");
-                    html.append("<script>function runLocalSearch(){ var val=document.getElementById('localSearchInput').value; window.location.href='/?tab=books&search='+encodeURIComponent(val); }</script>");
 
                     try {
                         Connection conn = ensureDatabaseConnected();
@@ -484,11 +490,35 @@ public class AdvancedLibrarySystem {
                             }
                         }
 
+                        // Mixed filter and search layout control system
+                        html.append("<div class='filter-bar'>");
+                        html.append("<div style='display:flex; flex-direction:column; gap:4px; width:35%;'>");
+                        html.append("<span style='font-size:11px; font-weight:600; color:#475569;'>Isolate Department Category:</span>");
+                        html.append("<select id='categorySelectMenu' onchange='runLocalSearch()' style='padding:10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); font-size:13px;'>");
+                        html.append("<option value='all' ").append("all".equals(categoryFilter)?"selected":"").append(">All Available Categories</option>");
+                        for (String catOpt : dynamicCategories) {
+                            html.append("<option value='").append(catOpt).append("' ").append(catOpt.equals(categoryFilter)?"selected":"").append(">").append(catOpt).append("</option>");
+                        }
+                        html.append("</select></div>");
+
+                        html.append("<div style='display:flex; flex-direction:column; gap:4px; width:65%;'>");
+                        html.append("<span style='font-size:11px; font-weight:600; color:#475569;'>Filter Title Keyword Queries:</span>");
+                        html.append("<div style='display:flex; gap:10px;'>");
+                        html.append("<input type='text' id='localSearchInput' style='padding:9px; width:80%; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text);' placeholder='Query title keywords, publication tags...' value='").append(localSearchQuery).append("'/>");
+                        html.append("<button class='btn' onclick='runLocalSearch()'>Query Index</button>");
+                        html.append("</div></div>");
+                        html.append("</div>");
+
                         if (dynamicCategories.isEmpty()) {
                             html.append("<p style='color:gray;'>No data entries are currently managed in the local data index context environment.</p>");
                         }
 
                         for (String domainCategory : dynamicCategories) {
+                            // Enforce selection filter rules
+                            if (!"all".equals(categoryFilter) && !domainCategory.equals(categoryFilter)) {
+                                continue;
+                            }
+
                             String baseSql = "SELECT b.*, (SELECT COUNT(*) FROM favorites WHERE book_id=b.id) as fav_count, " +
                                              "(SELECT COUNT(*) FROM activity_logs WHERE action_type='Borrow Asset' AND details LIKE CONCAT('%', b.id, '%')) as borrow_count " +
                                              "FROM books b WHERE b.category = ?";
