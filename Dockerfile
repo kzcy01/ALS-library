@@ -1,8 +1,8 @@
-FROM openjdk:21-slim
+FROM container-registry.oracle.com/java/openjdk:26-oraclelinux9
 WORKDIR /app
 
-# Copy all local project files into the container
+# Copy all project files into the container workspace
 COPY . .
 
-# Check where the compiled class file sits, handle Java versioning, and run instantly
+# Run the pre-compiled class directly using the dual-path script
 CMD ["sh", "-c", "if [ -d \"out/production/untitled\" ]; then java -cp out/production/untitled:out AdvancedLibrarySystem; else java -cp src AdvancedLibrarySystem; fi"]
