@@ -1,14 +1,16 @@
-FROM eclipse-temurin:21-jdk-alpine
-WORKDIR /app
+FROM eclipse-temurin:21-jdk
+WORKDIR /workspace
 
-# Copy the raw Java source files into the container
+# 1. Copy the entire repository into the container workspace
 COPY . .
 
-# Move directly into the src directory where the file lives
-WORKDIR /app/src
+# 2. Force delete any old, half-compiled, or corrupted class files from Git tracking
+RUN find . -name "*.class" -delete && rm -rf out/ target/ build/
 
-# Compile directly on the cloud server using absolute minimum memory tricks
-RUN javac -J-Xms64m -J-Xmx128m -encoding UTF-8 AdvancedLibrarySystem.java
+# 3. Dynamically find the raw Java code file, bring it to the root, and compile it fresh
+RUN FILE_PATH=$(find . -name "AdvancedLibrarySystem.java" | head -n 1) && \
+    cp "$FILE_PATH" ./AdvancedLibrarySystem.java && \
+    javac -encoding UTF-8 AdvancedLibrarySystem.java
 
-# Boot the application directly from the freshly compiled local directory
-CMD ["java", "-Xms64m", "-Xmx192m", "AdvancedLibrarySystem"]
+# 4. Boot the application with Headless Mode activated
+CMD ["java", "-Djava.awt.headless=true", "-Xms64m", "-Xmx256m", "AdvancedLibrarySystem"]
