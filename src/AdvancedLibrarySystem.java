@@ -532,12 +532,28 @@ public class AdvancedLibrarySystem extends JFrame {
         return main;
     }
 
-    private void refreshStudentCatalog() {
+private void refreshStudentCatalog() {
         modelStudentBooks.setRowCount(0);
         try (Connection conn = getConnection(); Statement st = conn.createStatement(); ResultSet rs = st.executeQuery("SELECT * FROM books;")) {
-            while(rs.next()) modelStudentBooks.addRow(new Object[]{rs.getInt("id"), rs.getString("title"), rs.getBoolean("is_available") ? "Available" : "Circulating"});
+            while(rs.next()) {
+                modelStudentBooks.addRow(new Object[]{rs.getInt("id"), rs.getString("title"), rs.getBoolean("is_available") ? "Available" : "Circulating"});
+            }
         } catch(Exception e){}
     }
+
+    private void refreshStudentPersonalLog() {}
+    private void refreshAdminTables() {}
+
+    public static void main(String[] args) {
+        if (System.getenv("PORT") != null) {
+            System.setProperty("java.awt.headless", "true");
+            new AdvancedLibrarySystem();
+        } else {
+            System.setProperty("java.awt.headless", "false");
+            SwingUtilities.invokeLater(() -> new AdvancedLibrarySystem().setVisible(true));
+        }
+    }
+}
 
     private void refreshStudentPersonalLog() {}
     private void refreshAdminTables() {}

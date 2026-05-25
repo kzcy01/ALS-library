@@ -1,21 +1,17 @@
-# Step 1: Download the official MySQL driver dependency
-FROM alpine:latest AS builder
-WORKDIR /download
-RUN apk add --no-cache wget && \
-    wget https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar
-
-# Step 2: Use stable Java Runtime to handle the environment
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
-# Copy project files into the directory
+# Install curl/wget to safely pull dependencies inside the base image
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+# Download the exact JDBC MySQL connector jar to our application root directory
+RUN wget https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar
+
+# Copy all project source directories into the image filesystems
 COPY . .
 
-# Grab the database connection engine driver from Stage 1
-COPY --from=builder /download/mysql-connector-j-8.3.0.jar .
-
-# Compile your java class file directly using classpath referencing
+# Compile the source class explicitly using our local dependency classpath container reference
 RUN javac -cp "mysql-connector-j-8.3.0.jar" src/AdvancedLibrarySystem.java
 
-# Execute the background worker safely while silencing missing desktop environments
+# Spin up the compiled application binary with appropriate network classpath variables enabled
 CMD ["java", "-Djava.awt.headless=true", "-cp", "mysql-connector-j-8.3.0.jar:src", "AdvancedLibrarySystem"]
