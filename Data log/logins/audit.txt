@@ -22,3 +22,9 @@
 [2026-05-26 00:00:52] Web User logged in: admin
 [2026-05-26 00:04:07] Web User logged in: 2025-200491
 [2026-05-26 00:06:07] Web User logged in: admin
+[2026-05-26 01:15:53] Desktop User opened session: admin
+[2026-05-26 01:16:10] New local system profile created: 2024-106559
+[2026-05-26 01:16:11] Desktop User opened session: 2024-106559
+[2026-05-26 01:16:19] Desktop User opened session: admin
+[2026-05-26 01:16:34] Desktop User opened session: 2024-106559
+[2026-05-26 01:16:46] Desktop User opened session: admin

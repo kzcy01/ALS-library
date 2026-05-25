@@ -8,3 +8,7 @@
 [2026-05-26 00:00:46] Desktop Session closed: 2024-106559
 [2026-05-26 00:00:50] Web session disconnected: admin
 [2026-05-26 00:03:51] Web session disconnected: admin
+[2026-05-26 01:16:02] Desktop Session closed: admin
+[2026-05-26 01:16:16] Desktop Session closed: 2024-106559
+[2026-05-26 01:16:27] Desktop Session closed: admin
+[2026-05-26 01:16:41] Desktop Session closed: 2024-106559
