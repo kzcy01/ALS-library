@@ -6,8 +6,9 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-public class AdvancedLibrarySystem extends JFrame {
-    // GUI components
+public class AdvancedLibrarySystem {
+    // GUI component references (Only used when running locally)
+    private JFrame mainFrame;
     private JTabbedPane tabbedPane;
     private JPanel panelStudent, panelAdmin;
     private JTable tableStudentBooks;
@@ -29,19 +30,19 @@ public class AdvancedLibrarySystem extends JFrame {
         } else {
             System.out.println("--- CLOUD ENVIRONMENT DETECTED ---");
             System.out.println("Running silently in background console mode. UI rendering skipped safely.");
-            // Print the data directly to the logs since we cannot show a user interface window
+            // Print the database records directly to the logs so you can see them!
             displayDatabaseContentsInLogs();
         }
 
         schedulePHTimeRestarts();
     }
 
-    // Graphical Interface Setup (Only executed locally on your laptop/computer)
+    // Graphical Interface Setup (Only executed locally on your computer)
     private void setupMainFrame() {
-        setTitle("Advanced Library Management System");
-        setSize(900, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        mainFrame = new JFrame("Advanced Library Management System");
+        mainFrame.setSize(900, 600);
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrame.setLocationRelativeTo(null);
 
         tabbedPane = new JTabbedPane();
 
@@ -54,12 +55,14 @@ public class AdvancedLibrarySystem extends JFrame {
         tabbedPane.addTab("Student Portal", panelStudent);
         tabbedPane.addTab("Admin Dashboard", panelAdmin);
 
-        add(tabbedPane);
+        mainFrame.add(tabbedPane);
 
         // Fetch data to render inside your local window tables
         refreshStudentCatalog();
         refreshStudentPersonalLog();
         refreshAdminTables();
+
+        mainFrame.setVisible(true);
     }
 
     // Database Connection Provider Engine
@@ -166,8 +169,7 @@ public class AdvancedLibrarySystem extends JFrame {
             // Standalone desktop mode with graphics
             System.setProperty("java.awt.headless", "false");
             SwingUtilities.invokeLater(() -> {
-                AdvancedLibrarySystem system = new AdvancedLibrarySystem();
-                system.setVisible(true);
+                new AdvancedLibrarySystem();
             });
         }
     }

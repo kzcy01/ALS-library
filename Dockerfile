@@ -10,7 +10,7 @@ RUN wget https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-
 # Copy full workspace files
 COPY . .
 
-# CORRECT COMPILER LAYOUT SYNTAX: Options must be declared BEFORE source files
+# Compile source with options set BEFORE source files
 RUN javac -cp "mysql-connector-j-8.3.0.jar" src/AdvancedLibrarySystem.java
 
 # Run headlessly mapping the driver to the classpath
