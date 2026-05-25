@@ -15,6 +15,8 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 
 public class AdvancedLibrarySystem {
@@ -24,11 +26,11 @@ public class AdvancedLibrarySystem {
 
     private static Connection sharedConnection = null;
     private static final List<String> operationsLog = Collections.synchronizedList(new ArrayList<>());
-    private static final Map<String, String> tokenToUserMap = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, String> tokenToUserMap = new ConcurrentHashMap<>();
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^(admin|\\d{4}-\\d{6})$");
 
     public AdvancedLibrarySystem() {
-        logSystemEvent("Initializing ALS Online Categorized Core Management Suite...");
+        logSystemEvent("Initializing Optimized ALS Online Categorized Core Management Suite...");
         try {
             ensureDatabaseConnected();
             initializeAndRepairDatabaseSchema();
@@ -36,9 +38,9 @@ public class AdvancedLibrarySystem {
         } catch (Exception e) {
             System.err.println("Critical System Initialization Error: " + e.getMessage());
         }
-
+        
         startLocalhostWebServer();
-
+        
         boolean isHeadless = "true".equals(System.getProperty("java.awt.headless")) || System.getenv("PORT") != null;
         if (!isHeadless) {
             setupLocalDesktopFrame();
@@ -57,7 +59,7 @@ public class AdvancedLibrarySystem {
             Class.forName("com.mysql.cj.jdbc.Driver");
             String dbUrl = System.getenv("MYSQL_URL");
             if (dbUrl == null || dbUrl.isEmpty()) {
-                dbUrl = "jdbc:mysql://localhost:3306/library_db?useSSL=false&allowPublicKeyRetrieval=true";
+                dbUrl = "jdbc:mysql://localhost:3306/library_db?useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true";
                 sharedConnection = DriverManager.getConnection(dbUrl, "root", "password");
             } else {
                 if (dbUrl.startsWith("mysql://")) {
@@ -82,7 +84,7 @@ public class AdvancedLibrarySystem {
                         "due_date VARCHAR(50) DEFAULT NULL," +
                         "chapters INT DEFAULT 10," +
                         "read_time_mins INT DEFAULT 180);");
-
+                
                 st.execute("CREATE TABLE IF NOT EXISTS users (" +
                         "username VARCHAR(100) PRIMARY KEY, " +
                         "role VARCHAR(50) DEFAULT 'Standard Student');");
@@ -103,7 +105,7 @@ public class AdvancedLibrarySystem {
                         "action_type VARCHAR(100), " +
                         "details VARCHAR(255), " +
                         "timestamp VARCHAR(50));");
-
+                
                 logSystemEvent("ALS Online institutional database structure verified successfully.");
             }
         } catch (Exception e) {
@@ -136,29 +138,29 @@ public class AdvancedLibrarySystem {
             }
             try (PreparedStatement ps = conn.prepareStatement("INSERT INTO users (username, password, role) VALUES (?, ?, ?)")) {
                 ps.setString(1, "admin");
-                ps.setString(2, "admin123");
+                ps.setString(2, "admin123"); 
                 ps.setString(3, "Administrator");
                 ps.executeUpdate();
             }
-
+            
             try (Statement st = conn.createStatement()) {
                 st.execute("TRUNCATE TABLE books;");
-
+                
                 String[] csTitles = {
-                    "Introduction to Algorithms", "Artificial Intelligence: A Modern Approach",
-                    "Computer Networking: A Top-Down Approach", "Operating System Concepts",
-                    "Database System Concepts", "Design Patterns: Elements of Reusable Object-Oriented Software",
+                    "Introduction to Algorithms", "Artificial Intelligence: A Modern Approach", 
+                    "Computer Networking: A Top-Down Approach", "Operating System Concepts", 
+                    "Database System Concepts", "Design Patterns: Elements of Reusable Object-Oriented Software", 
                     "Clean Code: A Handbook of Agile Software Craftsmanship", "The Pragmatic Programmer",
                     "Compilers: Principles, Techniques, and Tools", "Computer Architecture: A Quantitative Approach"
                 };
-
+                
                 String[] mathTitles = {
                     "Calculus: Early Transcendentals", "Introduction to Linear Algebra",
                     "Discrete Mathematics and Its Applications", "Principles of Mathematical Analysis",
                     "Advanced Engineering Mathematics", "Introduction to Probability",
                     "Abstract Algebra", "Thomas' Calculus", "Topology", "Complex Analysis"
                 };
-
+                
                 String[] physicsTitles = {
                     "University Physics with Modern Physics", "Fundamentals of Physics",
                     "Introduction to Electrodynamics", "Principles of Quantum Mechanics",
@@ -166,14 +168,14 @@ public class AdvancedLibrarySystem {
                     "Statistical Mechanics", "The Feynman Lectures on Physics",
                     "An Introduction to Thermal Physics", "Concepts of Modern Physics"
                 };
-
+                
                 String[] chemTitles = {
                     "Chemistry: The Central Science", "Organic Chemistry",
                     "Inorganic Chemistry", "Physical Chemistry",
                     "Biochemistry", "Principles of Modern Chemistry",
                     "Analytical Chemistry", "Molecular Biology of the Cell"
                 };
-
+                
                 String[] econTitles = {
                     "Principles of Economics", "Macroeconomics",
                     "Intermediate Microeconomics", "Econometric Analysis",
@@ -182,13 +184,14 @@ public class AdvancedLibrarySystem {
                 };
 
                 int bookIdCounter = 2001;
-
+                
+                conn.setAutoCommit(false);
                 try (PreparedStatement ps = conn.prepareStatement(
                         "INSERT INTO books (id, title, category, status, chapters, read_time_mins) VALUES (?, ?, ?, 'Available', ?, ?)")) {
-
+                    
                     for (int edition = 1; edition <= 13; edition++) {
                         String suffix = " (Edition " + edition + ")";
-
+                        
                         for (String t : csTitles) {
                             ps.setInt(1, bookIdCounter++);
                             ps.setString(2, t + suffix);
@@ -231,6 +234,9 @@ public class AdvancedLibrarySystem {
                         }
                     }
                     ps.executeBatch();
+                    conn.commit();
+                } finally {
+                    conn.setAutoCommit(true);
                 }
                 logSystemEvent("Seeded local catalog with 598 valid peer-reviewed academic reference titles.");
             }
@@ -259,7 +265,7 @@ public class AdvancedLibrarySystem {
             int port = (portEnv != null) ? Integer.parseInt(portEnv) : 8080;
             webServer = HttpServer.create(new InetSocketAddress(port), 0);
             webServer.createContext("/", new ApplicationRouterHandler());
-            webServer.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(15));
+            webServer.setExecutor(Executors.newWorkStealingPool());
             webServer.start();
             logSystemEvent("ALS Online server listening on port: " + port);
         } catch (IOException e) {
@@ -268,7 +274,7 @@ public class AdvancedLibrarySystem {
     }
 
     private class ApplicationRouterHandler implements HttpHandler {
-
+        
         private String getSessionUser(HttpExchange exchange) {
             List<String> cookies = exchange.getRequestHeaders().get("Cookie");
             if (cookies != null) {
@@ -292,18 +298,18 @@ public class AdvancedLibrarySystem {
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
-
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+                
                 if (conn.getResponseCode() == 200) {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-                    String inputLine;
-                    StringBuilder response = new StringBuilder();
-                    while ((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
+                    try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                        String inputLine;
+                        StringBuilder response = new StringBuilder();
+                        while ((inputLine = in.readLine()) != null) {
+                            response.append(inputLine);
+                        }
+                        return response.toString();
                     }
-                    in.close();
-                    return response.toString();
                 }
             } catch (Exception e) {
                 System.err.println("Remote open-library query error: " + e.getMessage());
@@ -317,7 +323,7 @@ public class AdvancedLibrarySystem {
             String query = exchange.getRequestURI().getQuery();
             String method = exchange.getRequestMethod();
             Map<String, String> params = parseFormBody(exchange);
-
+            
             String sessionUser = getSessionUser(exchange);
             String localSearchQuery = "";
             String apiSearchQuery = "";
@@ -329,14 +335,16 @@ public class AdvancedLibrarySystem {
                 for (String pair : pairs) {
                     String[] idx = pair.split("=");
                     if (idx.length > 1) {
-                        if (idx[0].equals("search")) {
-                            localSearchQuery = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
-                        } else if (idx[0].equals("apiSearch")) {
-                            apiSearchQuery = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
-                        } else if (idx[0].equals("logFilter")) {
-                            logFilter = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
-                        } else if (idx[0].equals("categoryFilter")) {
-                            categoryFilter = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
+                        String key = idx[0];
+                        String val = URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()).trim();
+                        if ("search".equals(key)) {
+                            localSearchQuery = val;
+                        } else if ("apiSearch".equals(key)) {
+                            apiSearchQuery = val;
+                        } else if ("logFilter".equals(key)) {
+                            logFilter = val;
+                        } else if ("categoryFilter".equals(key)) {
+                            categoryFilter = val;
                         }
                     }
                 }
@@ -345,7 +353,7 @@ public class AdvancedLibrarySystem {
             if ("POST".equalsIgnoreCase(method)) {
                 try {
                     Connection conn = ensureDatabaseConnected();
-
+                    
                     if ("/login".equals(path)) {
                         String uid = params.getOrDefault("userId", "").trim();
                         String pass = params.getOrDefault("password", "").trim();
@@ -355,14 +363,15 @@ public class AdvancedLibrarySystem {
                         }
                         try (PreparedStatement ps = conn.prepareStatement("SELECT password FROM users WHERE username=?")) {
                             ps.setString(1, uid);
-                            ResultSet rs = ps.executeQuery();
-                            if (rs.next() && rs.getString("password").equals(pass)) {
-                                String token = UUID.randomUUID().toString();
-                                tokenToUserMap.put(token, uid);
-                                exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=" + token + "; Path=/; HttpOnly");
-                                recordUserActivity(uid, "User Login", "Authorized application session initialization.");
-                                redirect(exchange, "/");
-                                return;
+                            try (ResultSet rs = ps.executeQuery()) {
+                                if (rs.next() && rs.getString("password").equals(pass)) {
+                                    String token = UUID.randomUUID().toString();
+                                    tokenToUserMap.put(token, uid);
+                                    exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=" + token + "; Path=/; HttpOnly; SameSite=Strict");
+                                    recordUserActivity(uid, "User Login", "Authorized application session initialization.");
+                                    redirect(exchange, "/");
+                                    return;
+                                }
                             }
                         }
                         displayValidationError(exchange, "Authentication failed. Provide a correct security token profile.");
@@ -385,7 +394,10 @@ public class AdvancedLibrarySystem {
                         return;
                     }
                     else if ("/logout".equals(path)) {
-                        if (sessionUser != null) recordUserActivity(sessionUser, "User Logout", "Terminated core application session token context.");
+                        if (sessionUser != null) {
+                            recordUserActivity(sessionUser, "User Logout", "Terminated core application session token context.");
+                            tokenToUserMap.values().remove(sessionUser);
+                        }
                         exchange.getResponseHeaders().add("Set-Cookie", "LIBRARY_USER_SESSION=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
                         redirect(exchange, "/");
                         return;
@@ -470,13 +482,13 @@ public class AdvancedLibrarySystem {
                 }
             }
 
-            StringBuilder html = new StringBuilder();
+            StringBuilder html = new StringBuilder(16384);
             html.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
             html.append("<title>ALS Online</title>");
             html.append("<style>");
             html.append(":root { --bg: #f8fafc; --card-bg: #ffffff; --text: #0f172a; --primary: #0f172a; --nav-bg: #0f172a; --border: #cbd5e1; --accent: #1e40af; }");
             html.append("body.dark-mode { --bg: #090d16; --card-bg: #111827; --text: #f8fafc; --nav-bg: #030712; --border: #374151; --accent: #3b82f6; }");
-            html.append("body { background-color: var(--bg); color: var(--text); font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; padding:0; transition: background 0.2s, color 0.2s; }");
+            html.append("body { background-color: var(--bg); color: var(--text); font-family:'Segoe UI', Geneva, sans-serif; margin:0; padding:0; transition: background 0.2s, color 0.2s; }");
             html.append(".navbar { background-color: var(--nav-bg); color: #ffffff; padding:18px 40px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); }");
             html.append(".navbar h2 { margin:0; font-weight:600; font-size:20px; letter-spacing:-0.5px; display:flex; align-items:center; gap:10px; color: #ffffff; }");
             html.append(".navbar sub { font-size:12px; font-weight:400; color: #94a3b8; }");
@@ -525,7 +537,7 @@ public class AdvancedLibrarySystem {
                 html.append("<button type='submit' formaction='/login' class='btn' style='width:100%; margin-bottom:10px;'>Secure Gateway Access</button>");
                 html.append("<button type='submit' formaction='/register' class='btn btn-secondary' style='width:100%;'>Register Account Node</button>");
                 html.append("</form></div>");
-            }
+            } 
             else {
                 String activeTab = "books";
                 if (query != null && query.contains("tab=")) {
@@ -540,9 +552,9 @@ public class AdvancedLibrarySystem {
                 html.append("<span style='font-size:13px; color:#ffffff; font-weight:500;'>Hello, <b>").append(sessionUser).append("</b></span>");
                 html.append("<form action='/logout' method='POST' style='margin:0;'><button type='submit' class='btn' style='background:#ef4444; padding:6px 12px; font-size:12px;'>Terminate Session</button></form>");
                 html.append("</div></div>");
-
+                
                 html.append("<div class='wrapper'>");
-
+                
                 html.append("<div class='tabs-header'>");
                 html.append("<a class='tab-link ").append(activeTab.equals("books")?"active":"").append("' href='/?tab=books'>Academic Categorized Index</a>");
                 if ("admin".equals(sessionUser)) {
@@ -552,12 +564,12 @@ public class AdvancedLibrarySystem {
                 html.append("<a class='tab-link ").append(activeTab.equals("api")?"active":"").append("' href='/?tab=api'>Open Library Cross-Reference</a>");
                 html.append("</div>");
 
-                if (activeTab.equals("books")) {
+                if ("books".equals(activeTab)) {
                     html.append("<div class='card'><h3>Search Local Catalog Inventories</h3>");
-
+                    
                     try {
                         Connection conn = ensureDatabaseConnected();
-
+                        
                         List<String> dynamicCategories = new ArrayList<>();
                         try (Statement catSt = conn.createStatement(); ResultSet catRs = catSt.executeQuery("SELECT DISTINCT category FROM books ORDER BY category ASC")) {
                             while (catRs.next()) {
@@ -582,7 +594,7 @@ public class AdvancedLibrarySystem {
                         html.append("<button class='btn' onclick='runLocalSearch()'>Query Index</button>");
                         html.append("</div></div>");
                         html.append("</div>");
-
+                        
                         if (dynamicCategories.isEmpty()) {
                             html.append("<p style='color:gray;'>No data entries are currently managed in the local data index context environment.</p>");
                         }
@@ -595,7 +607,7 @@ public class AdvancedLibrarySystem {
                             String baseSql = "SELECT b.*, (SELECT COUNT(*) FROM favorites WHERE book_id=b.id) as fav_count, " +
                                              "(SELECT COUNT(*) FROM activity_logs WHERE action_type='Borrow Asset' AND details LIKE CONCAT('%', b.id, '%')) as borrow_count " +
                                              "FROM books b WHERE b.category = ?";
-
+                            
                             if (!localSearchQuery.isEmpty()) {
                                 baseSql += " AND b.title LIKE ?";
                             }
@@ -604,17 +616,17 @@ public class AdvancedLibrarySystem {
                             try (PreparedStatement ps = conn.prepareStatement(baseSql)) {
                                 ps.setString(1, domainCategory);
                                 if (!localSearchQuery.isEmpty()) ps.setString(2, "%" + localSearchQuery + "%");
-
+                                
                                 try (ResultSet rs = ps.executeQuery()) {
                                     boolean sectionHeaderPrinted = false;
-
+                                    
                                     while (rs.next()) {
                                         if (!sectionHeaderPrinted) {
                                             html.append("<div class='category-header'>Category: ").append(domainCategory).append("</div>");
                                             html.append("<div class='catalog-grid'>");
                                             sectionHeaderPrinted = true;
                                         }
-
+                                        
                                         int bid = rs.getInt("id");
                                         String title = rs.getString("title");
                                         String status = rs.getString("status");
@@ -626,7 +638,7 @@ public class AdvancedLibrarySystem {
                                         html.append("<div class='resource-row'>");
                                         html.append("<div><h4 style='margin:0 0 4px 0; font-size:16px; font-weight:600;'>").append(title).append("</h4>");
                                         html.append("<p style='font-size:11px; color:#64748b; margin:0;'>Global Catalog Control Reference Registry: System-ID #").append(bid).append("</p></div>");
-
+                                        
                                         html.append("<div class='meta-container'>");
                                         html.append("<span>Content Parts: ").append(chapters).append(" Sections</span>");
                                         html.append("<span>Processing Work-Time: ").append(readTime).append(" Mins</span>");
@@ -634,9 +646,9 @@ public class AdvancedLibrarySystem {
                                         html.append("<span>Total Historical Access: <b class='metric-box' style='color:#10b981; background:rgba(16,185,129,0.08);'>").append(borrowCount).append(" Checkouts</b></span>");
                                         html.append("<span>Status: ").append("Available".equals(status)?"<span style='color:#22c55e; font-weight:600;'>In Inventory</span>":"<span style='color:#ef4444; font-weight:600;'>Leased Out</span>").append("</span>");
                                         html.append("</div>");
-
+                                        
                                         html.append("<div style='display:flex; gap:8px; margin-top:5px;'>");
-                                        html.append("<button class='btn btn-secondary' onclick=\"viewAbstract('").append(title.replace("'", "\\'")).append("', '").append(domainCategory.replace("'", "\\'")).append("')\">View Abstract / Metadata</button>");
+                                        html.append("<button class='btn btn-secondary' onclick=\"viewAbstract('").append(title.replace("\"", "&quot;").replace("'", "\\'")).append("', '").append(domainCategory.replace("'", "\\'")).append("')\">View Abstract / Metadata</button>");
 
                                         if ("Available".equals(status)) {
                                             html.append("<form action='/borrow' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn'>Request Allocation</button></form>");
@@ -645,16 +657,16 @@ public class AdvancedLibrarySystem {
                                         }
 
                                         html.append("<form action='/addFavorite' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn btn-secondary' style='color:var(--accent);'>Bookmark Entry</button></form>");
-
+                                        
                                         if ("admin".equals(sessionUser)) {
                                             html.append("<form action='/deleteBook' method='POST' style='margin:0;'><input type='hidden' name='assetId' value='").append(bid).append("'/><button type='submit' class='btn' style='background:#ef4444;'>Purge Record</button></form>");
                                         }
                                         html.append("</div>");
                                         html.append("</div>");
                                     }
-
+                                    
                                     if (sectionHeaderPrinted) {
-                                        html.append("</div>");
+                                        html.append("</div>"); 
                                     }
                                 }
                             }
@@ -662,12 +674,12 @@ public class AdvancedLibrarySystem {
                     } catch (Exception e) {
                         html.append("<p style='color:red;'>Processing runtime query layout configuration exception: ").append(e.getMessage()).append("</p>");
                     }
-
+                    
                     html.append("</div>");
                 }
-                else if (activeTab.equals("logs") && "admin".equals(sessionUser)) {
+                else if ("logs".equals(activeTab) && "admin".equals(sessionUser)) {
                     html.append("<div class='card'><h3>System Pipeline Audit Trail Logs</h3>");
-
+                    
                     html.append("<div class='filter-bar'>");
                     html.append("<span style='font-size:12px; font-weight:600; color:#475569;'>Filter Audit Scope:</span>");
                     html.append("<select onchange='filterLogs(this.value)' style='padding:6px 12px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); font-size:13px;'>");
@@ -682,7 +694,7 @@ public class AdvancedLibrarySystem {
                     try {
                         Connection conn = ensureDatabaseConnected();
                         String logSql = "SELECT * FROM activity_logs";
-
+                        
                         if ("login".equals(logFilter)) {
                             logSql += " WHERE action_type = 'User Login'";
                         } else if ("rented".equals(logFilter)) {
@@ -703,7 +715,7 @@ public class AdvancedLibrarySystem {
                     } catch (Exception e) {}
                     html.append("</tbody></table></div>");
                 }
-                else if (activeTab.equals("api")) {
+                else if ("api".equals(activeTab)) {
                     html.append("<div class='card'><h3>Open Library Academic Index Query Gateway</h3>");
                     html.append("<p style='font-size:13px; color:#64748b; margin-top:-5px;'>Query cross-network external dataset clusters via Open Library JSON streams API structures.</p>");
                     html.append("<div style='display:flex; gap:10px; margin-bottom:25px;'>");
@@ -747,12 +759,12 @@ public class AdvancedLibrarySystem {
                     }
                     html.append("</div>");
                 }
-                else if (activeTab.equals("add") && "admin".equals(sessionUser)) {
+                else if ("add".equals(activeTab) && "admin".equals(sessionUser)) {
                     html.append("<div class='card'><h3>Administrative Provisioning Workspace</h3>");
                     html.append("<form action='/addBook' method='POST' style='display:flex; flex-direction:column; gap:12px; max-width:450px;'>");
                     html.append("<label style='font-size:12px; font-weight:600;'>Resource Title Descriptor Name:</label>");
                     html.append("<input type='text' name='title' style='padding:10px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);' placeholder='e.g., Introduction to Neural Network Topology Frameworks' required autocomplete='off'/>");
-
+                    
                     html.append("<label style='font-size:12px; font-weight:600;'>Classification Academic Department Category:</label>");
                     html.append("<select name='category' style='padding:10px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);'>");
                     html.append("<option value='Computer Science & Engineering'>Computer Science & Engineering</option>");
@@ -760,12 +772,12 @@ public class AdvancedLibrarySystem {
                     html.append("<option value='Economics & Social Sciences'>Economics & Social Sciences</option>");
                     html.append("<option value='General Reference'>General Reference</option>");
                     html.append("</select>");
-
+                    
                     html.append("<button type='submit' class='btn' style='margin-top:10px;'>Append Asset Framework Instance</button>");
                     html.append("</form></div>");
                 }
 
-                html.append("</div>");
+                html.append("</div>"); 
             }
 
             html.append("<div id='abstractDrawer' class='drawer-overlay' onclick='closeAbstract()'>");
@@ -802,18 +814,19 @@ public class AdvancedLibrarySystem {
         private Map<String, String> parseFormBody(HttpExchange exchange) throws IOException {
             Map<String, String> result = new HashMap<>();
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) return result;
-            InputStream is = exchange.getRequestBody();
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = is.read(buffer)) != -1) bos.write(buffer, 0, len);
-            String formText = bos.toString(StandardCharsets.UTF_8.name());
-            if (formText.isEmpty()) return result;
-            String[] pairs = formText.split("&");
-            for (String pair : pairs) {
-                String[] idx = pair.split("=");
-                if (idx.length == 2) {
-                    result.put(URLDecoder.decode(idx[0], StandardCharsets.UTF_8.name()), URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()));
+            try (InputStream is = exchange.getRequestBody();
+                 ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[1024];
+                int len;
+                while ((len = is.read(buffer)) != -1) bos.write(buffer, 0, len);
+                String formText = bos.toString(StandardCharsets.UTF_8.name());
+                if (formText.isEmpty()) return result;
+                String[] pairs = formText.split("&");
+                for (String pair : pairs) {
+                    String[] idx = pair.split("=");
+                    if (idx.length == 2) {
+                        result.put(URLDecoder.decode(idx[0], StandardCharsets.UTF_8.name()), URLDecoder.decode(idx[1], StandardCharsets.UTF_8.name()));
+                    }
                 }
             }
             return result;
