@@ -1,8 +1,8 @@
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Copy all project files into the container
+# Copy absolutely everything in your project into the container
 COPY . .
 
-# This script auto-detects where your Java file is and runs it natively
-CMD ["sh", "-c", "if [ -f \"AdvancedLibrarySystem.java\" ]; then javac AdvancedLibrarySystem.java && java AdvancedLibrarySystem; elif [ -f \"src/AdvancedLibrarySystem.java\" ]; then javac src/AdvancedLibrarySystem.java && java -cp src AdvancedLibrarySystem; else echo 'CRITICAL ERROR: AdvancedLibrarySystem.java could not be found anywhere!'; exit 1; fi"]
+# Find the file wherever it exists, move it to the root of /app, compile, and run it cleanly
+CMD ["sh", "-c", "FILE_PATH=$(find . -name 'AdvancedLibrarySystem.java' | head -n 1); if [ -n \"$FILE_PATH\" ]; then echo \"Found file at: $FILE_PATH\"; cp \"$FILE_PATH\" ./AdvancedLibrarySystem.java; javac AdvancedLibrarySystem.java && java AdvancedLibrarySystem; else echo 'CRITICAL ERROR: AdvancedLibrarySystem.java cannot be found anywhere in this repository!'; exit 1; fi"]
