@@ -1,0 +1,13 @@
+[2026-05-25 23:42:37] User 2024-106559 borrowed Asset ID 1014 (Macbeth)
+[2026-05-25 23:42:38] User 2024-106559 borrowed Asset ID 1023 (Wuthering Heights)
+[2026-05-25 23:42:39] User 2024-106559 borrowed Asset ID 1028 (The Brothers Karamazov)
+[2026-05-25 23:54:17] User 2024-106559 borrowed Asset ID 1039 (Dracula)
+[2026-05-25 23:58:13] Web User 2024-106559 borrowed Asset: Life of Pi
+[2026-05-25 23:58:14] Web User 2024-106559 borrowed Asset: Brave New World
+[2026-05-25 23:58:15] Web User 2024-106559 borrowed Asset: The Lord of the Rings
+[2026-05-25 23:58:16] Web User 2024-106559 borrowed Asset: Animal Farm
+[2026-05-25 23:58:36] Web User 2025-200491 borrowed Asset: The Great Gatsby
+[2026-05-25 23:58:39] Web User 2025-200491 borrowed Asset: To Kill a Mockingbird
+[2026-05-25 23:58:40] Web User 2025-200491 borrowed Asset: 1984
+[2026-05-25 23:59:20] Web User 2025-200491 borrowed Asset: The Great Gatsby
+[2026-05-25 23:59:28] Web User 2025-200491 borrowed Asset: To Kill a Mockingbird

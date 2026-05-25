@@ -1,0 +1,10 @@
+[2026-05-25 23:39:29] Session closed: admin
+[2026-05-25 23:39:44] Session closed: 2024-106559
+[2026-05-25 23:42:10] Session closed: admin
+[2026-05-25 23:42:28] Session closed: 2024-106559
+[2026-05-25 23:53:58] Session closed: admin
+[2026-05-25 23:57:58] Web session disconnected: admin
+[2026-05-25 23:59:57] Web session disconnected: 2025-200491
+[2026-05-26 00:00:46] Desktop Session closed: 2024-106559
+[2026-05-26 00:00:50] Web session disconnected: admin
+[2026-05-26 00:03:51] Web session disconnected: admin

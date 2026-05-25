@@ -1,0 +1,24 @@
+[2026-05-25 23:39:21] User opened session: admin
+[2026-05-25 23:39:37] New system profile created: 2024-106559
+[2026-05-25 23:39:38] User opened session: 2024-106559
+[2026-05-25 23:41:43] User opened session: admin
+[2026-05-25 23:42:16] New system profile created: 2024-106559
+[2026-05-25 23:42:18] User opened session: 2024-106559
+[2026-05-25 23:42:35] User opened session: 2024-106559
+[2026-05-25 23:53:55] User opened session: admin
+[2026-05-25 23:54:04] New system profile created: 2024-106559
+[2026-05-25 23:54:05] User opened session: 2024-106559
+[2026-05-25 23:57:23] Web User logged in: admin
+[2026-05-25 23:58:08] Web User registered account: 2024-106559
+[2026-05-25 23:58:10] Web User logged in: 2024-106559
+[2026-05-25 23:58:18] Web User registered account: 2025-200491
+[2026-05-25 23:58:21] Web User logged in: 2025-200491
+[2026-05-25 23:59:15] Web User registered account: 2025-200491
+[2026-05-25 23:59:17] Web User logged in: 2025-200491
+[2026-05-25 23:59:19] Web User logged in: admin
+[2026-05-26 00:00:01] Web User logged in: admin
+[2026-05-26 00:00:35] New local system profile created: 2024-106559
+[2026-05-26 00:00:36] Desktop User opened session: 2024-106559
+[2026-05-26 00:00:52] Web User logged in: admin
+[2026-05-26 00:04:07] Web User logged in: 2025-200491
+[2026-05-26 00:06:07] Web User logged in: admin
