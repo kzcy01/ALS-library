@@ -75,7 +75,7 @@ public class AdvancedLibrarySystem extends JFrame {
 
     private User loggedInUser = null;
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^\\d{4}-\\d{5,7}$");
-    private static final int SERVER_PORT = 8080;
+    private static final int DEFAULT_PORT = 8080;
     private HttpServer server;
 
     // --- UI DESIGN STYLING ARCHITECTURE ---
@@ -102,7 +102,12 @@ public class AdvancedLibrarySystem extends JFrame {
         initializeDirectoryStructure();
         seedDataInventory();
         startLocalhostWebServer();
-        setupMainFrame();
+
+        // Only build and paint visual UI windows if running locally on desktop monitor systems
+        if (System.getProperty("java.awt.headless") == null || !System.getProperty("java.awt.headless").equals("true")) {
+            setupMainFrame();
+        }
+
         schedulePHTimeRestarts();
     }
 
@@ -132,20 +137,26 @@ public class AdvancedLibrarySystem extends JFrame {
             System.err.println("Error writing to logs: " + e.getMessage());
         }
 
-        SwingUtilities.invokeLater(() -> {
-            if (modelAdminLogs != null) {
-                refreshAdminTables();
-            }
-        });
+        // Bypasses desktop window repaint operations during cloud execution instances
+        if (System.getProperty("java.awt.headless") == null || !System.getProperty("java.awt.headless").equals("true")) {
+            SwingUtilities.invokeLater(() -> {
+                if (modelAdminLogs != null) {
+                    refreshAdminTables();
+                }
+            });
+        }
     }
 
     private void startLocalhostWebServer() {
         try {
-            server = HttpServer.create(new InetSocketAddress(SERVER_PORT), 0);
+            String portEnv = System.getenv("PORT");
+            int port = (portEnv != null) ? Integer.parseInt(portEnv) : DEFAULT_PORT;
+
+            server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/", new WebDashboardHandler());
             server.setExecutor(null);
             server.start();
-            System.out.println(">>> Interactive Web Server live at http://localhost:" + SERVER_PORT);
+            System.out.println(">>> Interactive Cloud Network Engine live at structural gateway port: " + port);
         } catch (IOException e) {
             System.err.println("Failed to start web server: " + e.getMessage());
         }
@@ -188,6 +199,8 @@ public class AdvancedLibrarySystem extends JFrame {
             String cookieHeader = exchange.getRequestHeaders().getFirst("Cookie");
             String username = getSessionUser(cookieHeader);
 
+            boolean isHeadless = "true".equals(System.getProperty("java.awt.headless"));
+
             if ("POST".equalsIgnoreCase(method)) {
                 Map<String, String> postData = parsePostData(exchange);
                 String action = postData.get("action");
@@ -217,7 +230,9 @@ public class AdvancedLibrarySystem extends JFrame {
                     } else {
                         users.put(uid, new User(uid, false));
                         writeLog("logins", "Web User registered account: " + uid);
-                        SwingUtilities.invokeLater(() -> refreshAdminTables());
+                        if (!isHeadless) {
+                            SwingUtilities.invokeLater(() -> refreshAdminTables());
+                        }
                         sendResponse(exchange, renderLoginPage("Success! Account created. You can now log in."));
                         return;
                     }
@@ -239,7 +254,9 @@ public class AdvancedLibrarySystem extends JFrame {
                                 books.add(new Book(nextId, title.trim()));
                                 writeLog("book added", "Web ADMIN added resource: ID " + nextId + " [" + title + "]");
                             }
-                            SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            if (!isHeadless) {
+                                SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            }
                         }
                         redirect(exchange, "/");
                         return;
@@ -255,7 +272,9 @@ public class AdvancedLibrarySystem extends JFrame {
                                     }
                                 }
                             }
-                            SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            if (!isHeadless) {
+                                SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            }
                         } catch (Exception e) {}
                         redirect(exchange, "/");
                         return;
@@ -276,7 +295,9 @@ public class AdvancedLibrarySystem extends JFrame {
                                     }
                                 }
                             }
-                            SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            if (!isHeadless) {
+                                SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            }
                         } catch (Exception e) {}
                         redirect(exchange, "/");
                         return;
@@ -300,7 +321,9 @@ public class AdvancedLibrarySystem extends JFrame {
                                     }
                                 }
                             }
-                            SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            if (!isHeadless) {
+                                SwingUtilities.invokeLater(() -> { refreshStudentCatalog(); refreshAdminTables(); });
+                            }
                         } catch (Exception e) {}
                         redirect(exchange, "/");
                         return;
@@ -515,9 +538,12 @@ public class AdvancedLibrarySystem extends JFrame {
         lblLiveClock.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblLiveClock.setForeground(COLOR_TEXT);
 
+        String portEnv = System.getenv("PORT");
+        int currentActivePort = (portEnv != null) ? Integer.parseInt(portEnv) : DEFAULT_PORT;
+
         javax.swing.Timer systemClockTimer = new javax.swing.Timer(1000, e -> {
             String currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            lblLiveClock.setText(currentDateTime + " | Web Port: " + SERVER_PORT);
+            lblLiveClock.setText(currentDateTime + " | Web Port: " + currentActivePort);
         });
         systemClockTimer.start();
 
@@ -959,6 +985,24 @@ public class AdvancedLibrarySystem extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AdvancedLibrarySystem().setVisible(true));
+        // Evaluate active environment profile context parameters
+        boolean isCloudEnvironment = System.getenv("PORT") != null;
+
+        if (isCloudEnvironment) {
+            System.out.println("--- CLOUD ENVIRONMENT DETECTED ---");
+            System.out.println("Starting Headless Web Infrastructure Server Console...");
+
+            // Set the absolute runtime property constraint
+            System.setProperty("java.awt.headless", "true");
+
+            // Fire up only the background web infrastructure server directly
+            new AdvancedLibrarySystem();
+        } else {
+            System.out.println("--- LOCAL DESKTOP COMPUTER DETECTED ---");
+            System.out.println("Launching standard Desktop UI Management Window Console...");
+
+            // Initialize visual elements safely inside local UI thread monitors
+            SwingUtilities.invokeLater(() -> new AdvancedLibrarySystem().setVisible(true));
+        }
     }
 }
